@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>COGNITIV</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root{--bg:#04040a;--border:#1a1f2e;--accent:#00f5a0;--accent2:#9945ff;--accent3:#00b8ff;--warn:#f5c542;--danger:#ff4d6d;--text:#e8eaf0;--muted:#4a5568;--card:#0a0d18;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,245,160,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,160,.015) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0}
+#appShell{position:fixed;inset:0;display:flex;flex-direction:column;max-width:480px;margin:0 auto;}
+.header{flex-shrink:0;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;justify-content:space-between;background:rgba(4,4,10,.9);backdrop-filter:blur(24px);z-index:10;position:relative;}
+.header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),var(--accent2),transparent);opacity:.5;}
+.logo{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;letter-spacing:4px;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.streak{display:flex;align-items:center;gap:4px;background:rgba(245,197,66,.06);border:1px solid rgba(245,197,66,.18);padding:4px 10px;font-size:11px;color:var(--warn);border-radius:4px;}
+.lang-btn{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text);padding:5px 10px;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;display:flex;align-items:center;gap:5px;border-radius:6px;transition:all .2s;}
+.lang-btn:hover{border-color:var(--accent);color:var(--accent);}
+.screens{flex:1;overflow:hidden;position:relative;}
+.screen{position:absolute;inset:0;overflow-y:auto;display:none;padding-bottom:70px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.screen::-webkit-scrollbar{width:2px}.screen::-webkit-scrollbar-thumb{background:var(--border)}
+.screen.active{display:block;animation:fadeUp .28s cubic-bezier(.16,1,.3,1);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.nav{flex-shrink:0;display:flex;border-top:1px solid rgba(255,255,255,.04);background:rgba(4,4,10,.96);backdrop-filter:blur(20px);position:relative;}
+.nav::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent2),var(--accent),transparent);opacity:.35;}
+.nb{flex:1;background:none;border:none;color:var(--muted);padding:9px 4px 14px;cursor:pointer;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1px;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .22s;position:relative;}
+.nb::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:0;height:2px;background:var(--accent);border-radius:2px;transition:width .22s cubic-bezier(.16,1,.3,1);}
+.nb.on{color:var(--accent);}.nb.on::after{width:55%;}
+.nb svg{width:16px;height:16px;}
+#screen-chat{display:none;flex-direction:column;padding-bottom:0!important;}
+#screen-chat.active{display:flex;}
+.chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.chat-msgs::-webkit-scrollbar{width:2px}.chat-msgs::-webkit-scrollbar-thumb{background:var(--border)}
+.chat-bottom{flex-shrink:0;border-top:1px solid rgba(255,255,255,.04);background:var(--bg);}
+.chat-sugg{padding:8px 12px 0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;}
+.chat-sugg::-webkit-scrollbar{display:none}
+.sugg{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;padding:6px 12px;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s;border-radius:20px;}
+.sugg:hover,.sugg:active{border-color:var(--accent);color:var(--accent);background:rgba(0,245,160,.04);}
+.chat-inp-row{padding:8px 12px 12px;display:flex;gap:8px;}
+.chat-inp{flex:1;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);color:var(--text);padding:10px 13px;font-family:'DM Mono',monospace;font-size:13px;outline:none;resize:none;height:42px;line-height:1.4;border-radius:8px;transition:border-color .2s;}
+.chat-inp:focus{border-color:var(--accent);}
+.send-btn{background:linear-gradient(135deg,var(--accent),var(--accent3));color:var(--bg);border:none;padding:10px 16px;cursor:pointer;font-size:16px;flex-shrink:0;font-weight:700;min-width:48px;border-radius:8px;transition:all .2s;box-shadow:0 0 18px rgba(0,245,160,.2);}
+.send-btn:hover{transform:scale(1.05);box-shadow:0 0 28px rgba(0,245,160,.4);}
+.msg{max-width:86%;animation:msgIn .22s cubic-bezier(.16,1,.3,1);}
+@keyframes msgIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.msg.u{align-self:flex-end;}.msg.a{align-self:flex-start;}
+.msg-bbl{padding:11px 14px;font-size:13px;line-height:1.65;border-radius:12px;}
+.msg.u .msg-bbl{background:linear-gradient(135deg,var(--accent),var(--accent3));color:var(--bg);font-family:'Syne',sans-serif;font-weight:600;}
+.msg.a .msg-bbl{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-left:2px solid var(--accent);color:var(--text);border-radius:4px 12px 12px 4px;}
+.msg-t{font-size:9px;color:var(--muted);margin-top:3px;padding:0 3px;}
+.msg.u .msg-t{text-align:right;}
+.typing-wrap{align-self:flex-start;}
+.typing{display:inline-flex;gap:5px;align-items:center;padding:12px 16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-left:2px solid var(--accent);border-radius:4px 12px 12px 4px;}
+.tdot{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:td 1.2s infinite;}
+.tdot:nth-child(2){animation-delay:.2s}.tdot:nth-child(3){animation-delay:.4s}
+@keyframes td{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+.chat-welcome{text-align:center;padding:40px 20px 20px;}
+.cw-ico{font-size:44px;margin-bottom:14px;}
+.cw-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:2px;margin-bottom:10px;}
+.cw-sub{font-size:12px;color:var(--muted);line-height:1.8;max-width:280px;margin:0 auto;}
+.sec{font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;padding:18px 18px 8px;}
+.card{margin:0 16px 10px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);padding:16px 18px;border-radius:12px;}
+.p-hero{margin:14px 16px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);padding:28px 22px;text-align:center;position:relative;overflow:hidden;min-height:160px;border-radius:16px;}
+.p-ava{width:72px;height:72px;border:2px solid transparent;background:linear-gradient(var(--card),var(--card)) padding-box,linear-gradient(135deg,var(--accent),var(--accent2)) border-box;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:28px;font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);position:relative;z-index:2;border-radius:50%;box-shadow:0 0 28px rgba(0,245,160,.12);}
+.p-name{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:4px;position:relative;z-index:2;background:linear-gradient(135deg,var(--text) 60%,var(--muted));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.p-sub{font-size:10px;color:var(--muted);position:relative;z-index:2;}
+#profileBg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.pstats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:rgba(255,255,255,.04);margin:0 16px 10px;border-radius:12px;overflow:hidden;}
+.pst{background:rgba(255,255,255,.02);padding:14px 8px;text-align:center;transition:background .2s;}
+.pst:hover{background:rgba(0,245,160,.03);}
+.pst-v{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.pst-l{font-size:8px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:3px;}
+.chart{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);margin:0 16px 10px;padding:16px;border-radius:12px;}
+.chart-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.chart-ttl{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;}
+.chart-avg{font-size:10px;color:var(--muted);}
+.chart-avg b{color:var(--accent);font-weight:400;}
+.bars{display:flex;align-items:flex-end;gap:5px;height:70px;}
+.bw{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.b{width:100%;background:linear-gradient(180deg,var(--accent),var(--accent3));min-height:3px;transition:height .8s cubic-bezier(.16,1,.3,1);border-radius:2px 2px 0 0;}
+.b.e{background:rgba(255,255,255,.06);}
+.bv{font-size:8px;color:var(--accent);font-family:'Syne',sans-serif;font-weight:700;}
+.bv.e{color:var(--muted);}
+.flbl{font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:7px;display:block;}
+.finp{width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);color:var(--text);padding:10px 13px;font-family:'DM Mono',monospace;font-size:12px;outline:none;margin-bottom:14px;border-radius:8px;transition:border-color .2s;}
+.finp:focus{border-color:var(--accent);}
+.krow{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.kopt{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);color:var(--muted);padding:12px 8px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;text-align:center;transition:all .2s;border-radius:8px;}
+.kopt.sel{border-color:var(--accent);color:var(--accent);background:rgba(0,245,160,.06);}
+.kico{font-size:18px;display:block;margin-bottom:3px;}
+.abtn{display:block;width:calc(100% - 32px);margin:8px 16px 0;background:linear-gradient(135deg,var(--accent),var(--accent3));color:var(--bg);border:none;padding:14px;font-family:'Syne',sans-serif;font-size:11px;font-weight:800;letter-spacing:3px;cursor:pointer;text-align:center;border-radius:10px;box-shadow:0 4px 20px rgba(0,245,160,.18);transition:all .25s;}
+.abtn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,245,160,.32);}
+.abtn.out{background:transparent;border:1px solid rgba(0,245,160,.35);color:var(--accent);margin-bottom:6px;box-shadow:none;}
+.abtn.out:hover{background:rgba(0,245,160,.05);}
+.sl-card{margin:0 16px 9px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);padding:15px 17px;border-left:2px solid rgba(0,245,160,.25);border-radius:4px 12px 12px 4px;transition:border-left-color .2s;}
+.sl-card:focus-within{border-left-color:var(--accent);}
+.sl-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.sl-name{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:2px;}
+.sl-sub{font-size:9px;color:var(--muted);}
+.sl-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;background-clip:text;color:transparent;min-width:52px;text-align:right;}
+input[type=range]{-webkit-appearance:none;width:100%;height:2px;background:rgba(255,255,255,.08);outline:none;border-radius:2px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--accent);cursor:pointer;border:2px solid var(--bg);box-shadow:0 0 12px rgba(0,245,160,.45);border-radius:50%;}
+.sl-lbls{display:flex;justify-content:space-between;margin-top:5px;font-size:9px;color:var(--muted);}
+.score-hero{margin:14px 16px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);padding:28px;text-align:center;position:relative;overflow:hidden;border-radius:16px;}
+.score-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 100%,rgba(0,245,160,.07),transparent);}
+#scoreWaveBg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.sc-lbl{font-size:9px;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;position:relative;z-index:2;}
+.sc-num{font-family:'Syne',sans-serif;font-size:80px;font-weight:800;line-height:1;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px;position:relative;z-index:2;}
+.sc-bar-w{height:3px;background:rgba(255,255,255,.06);margin:12px 0 7px;border-radius:3px;position:relative;z-index:2;}
+.sc-bar{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent),var(--accent3));transition:width 1.2s cubic-bezier(.16,1,.3,1);border-radius:3px;box-shadow:0 0 8px rgba(0,245,160,.25);}
+.sc-grade{font-size:10px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;position:relative;z-index:2;}
+.mets{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 16px 10px;}
+.met{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);padding:12px 13px;border-radius:10px;transition:all .2s;}
+.met:hover{border-color:rgba(0,245,160,.18);}
+.met-l{font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;}
+.met-v{font-family:'Syne',sans-serif;font-size:21px;font-weight:800;}
+.met-v span{font-size:11px;color:var(--muted);font-weight:400;}
+.met-bar{height:2px;background:rgba(255,255,255,.06);margin-top:8px;border-radius:2px;}
+.met-bar-f{height:100%;background:linear-gradient(90deg,var(--accent3),var(--accent));transition:width 1.2s;border-radius:2px;}
+.tabs{display:flex;margin:14px 16px 0;border-bottom:1px solid rgba(255,255,255,.06);}
+.tab-btn{flex:1;background:none;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;padding:10px 4px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-pane{display:none;padding-top:10px;}.tab-pane.active{display:block;}
+.bn{margin:0 16px 7px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);padding:13px 15px;border-left:3px solid var(--warn);border-radius:4px 10px 10px 4px;}
+.bn.high{border-left-color:var(--danger);}
+.bn-h{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.bn-n{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;flex:1;}
+.bn-b{font-size:8px;letter-spacing:1px;text-transform:uppercase;padding:2px 6px;border-radius:3px;}
+.bn-b.high{background:rgba(255,77,109,.08);color:var(--danger);border:1px solid rgba(255,77,109,.2);}
+.bn-b.moderate{background:rgba(245,197,66,.08);color:var(--warn);border:1px solid rgba(245,197,66,.2);}
+.bn-b.low{background:rgba(0,245,160,.08);color:var(--accent);border:1px solid rgba(0,245,160,.2);}
+.bn-d{font-size:10px;color:var(--muted);line-height:1.6;}
+.plan-c{margin:0 16px 7px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);padding:14px 16px;border-radius:10px;}
+.plan-h{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;}
+.plan-p{font-size:9px;letter-spacing:2px;color:var(--accent3);text-transform:uppercase;border:1px solid rgba(0,184,255,.2);padding:2px 7px;border-radius:3px;}
+.plan-t{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;}
+.plan-a{display:flex;gap:8px;margin-bottom:7px;font-size:10px;color:var(--muted);line-height:1.6;}
+.plan-dot{color:var(--accent);flex-shrink:0;}
+.target{margin:6px 16px;background:rgba(0,245,160,.03);border:1px solid rgba(0,245,160,.1);padding:13px 15px;border-radius:10px;}
+.tgt-l{font-size:8px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;margin-bottom:5px;}
+.tgt-t{font-size:10px;color:var(--muted);line-height:1.7;}
+.tgt-t b{color:var(--accent);font-weight:400;}
+.game-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px;}
+.game-card{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);padding:18px 14px;cursor:pointer;text-align:center;transition:all .25s;border-radius:14px;position:relative;overflow:hidden;}
+.game-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(0,245,160,.07),transparent 70%);opacity:0;transition:opacity .25s;}
+.game-card:hover::before,.game-card:active::before{opacity:1;}
+.game-card:hover{border-color:rgba(0,245,160,.2);transform:translateY(-3px);}
+.g-ico{font-size:30px;margin-bottom:8px;display:block;}
+.g-name{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;margin-bottom:4px;}
+.g-desc{font-size:9px;color:var(--muted);line-height:1.5;}
+.gdiff{font-size:8px;letter-spacing:1px;margin-top:8px;padding:3px 8px;border:1px solid;display:inline-block;border-radius:20px;}
+.easy{color:var(--accent);border-color:rgba(0,245,160,.3);}
+.med{color:var(--warn);border-color:rgba(245,197,66,.3);}
+.hard{color:var(--danger);border-color:rgba(255,77,109,.3);}
+.game-play{display:none;margin:0 16px;}.game-play.on{display:block;}
+.g-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.g-back{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--muted);padding:6px 14px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;border-radius:6px;transition:all .2s;}
+.g-back:hover{border-color:var(--accent);color:var(--accent);}
+.g-sc-l{font-size:9px;color:var(--muted);letter-spacing:1px;text-align:right;}
+.g-sc-v{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;background-clip:text;color:transparent;text-align:right;}
+.gtimer{height:2px;background:linear-gradient(90deg,var(--accent),var(--accent3));margin-bottom:12px;border-radius:2px;transition:width linear;box-shadow:0 0 6px rgba(0,245,160,.25);}
+.gbox{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);padding:22px 18px;min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border-radius:14px;}
+.gq{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--text);margin-bottom:18px;}
+.gopts{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;}
+.gopt{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);color:var(--text);padding:14px;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:all .15s;border-radius:10px;}
+.gopt:hover{border-color:rgba(0,245,160,.25);}
+.gopt.ok{border-color:var(--accent);background:rgba(0,245,160,.08);color:var(--accent);}
+.gopt.no{border-color:var(--danger);background:rgba(255,77,109,.07);color:var(--danger);}
+.gres{text-align:center;padding:16px 0;}
+.gres-sc{font-family:'Syne',sans-serif;font-size:48px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.gres-l{font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:14px;}
+.play-again{background:linear-gradient(135deg,var(--accent),var(--accent3));color:var(--bg);border:none;padding:12px 28px;font-family:'Syne',sans-serif;font-size:10px;font-weight:800;letter-spacing:3px;cursor:pointer;margin-top:10px;border-radius:8px;transition:all .2s;}
+.play-again:hover{transform:scale(1.05);}
+.mem-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;width:100%;}
+.mcard{aspect-ratio:1;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;user-select:none;border-radius:8px;transition:all .2s;}
+.mcard.fl{border-color:var(--accent);background:rgba(0,245,160,.06);}
+.mcard.mt{border-color:var(--accent);opacity:.5;}
+.wi-d{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:3px;margin-bottom:6px;}
+.wi-h{font-size:10px;color:var(--muted);margin-bottom:18px;}
+.wi-i{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);color:var(--text);padding:11px 14px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;width:100%;outline:none;text-align:center;letter-spacing:3px;margin-bottom:10px;text-transform:uppercase;border-radius:8px;transition:border-color .2s;}
+.wi-i:focus{border-color:var(--accent);}
+.wi-s{background:linear-gradient(135deg,var(--accent),var(--accent3));color:var(--bg);border:none;padding:12px 28px;font-family:'Syne',sans-serif;font-size:10px;font-weight:800;letter-spacing:3px;cursor:pointer;border-radius:8px;}
+.react-area{width:100%;min-height:200px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:all .15s;user-select:none;border-radius:14px;}
+.react-area.go{background:rgba(0,245,160,.1);border-color:var(--accent);box-shadow:0 0 36px rgba(0,245,160,.12);}
+.react-area.wait{background:rgba(255,77,109,.05);border-color:rgba(255,77,109,.18);}
+.react-txt{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;letter-spacing:3px;text-align:center;color:var(--muted);}
+.react-area.go .react-txt{color:var(--accent);}
+.modal{display:none;position:fixed;inset:0;z-index:500;background:rgba(4,4,10,.96);overflow-y:auto;backdrop-filter:blur(12px);}
+.modal.show{display:block;animation:fadeUp .22s ease;}
+.modal-inner{max-width:480px;margin:0 auto;padding:20px 16px 100px;}
+.modal-ttl{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:3px;text-transform:uppercase;padding:12px 0 20px;}
+.lang-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.lang-item{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all .2s;border-radius:10px;}
+.lang-item:hover,.lang-item.sel{border-color:var(--accent);background:rgba(0,245,160,.04);}
+.li-f{font-size:22px;}.li-n{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;}.li-nat{font-size:9px;color:var(--muted);margin-top:1px;}
+.modal-close{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--accent),var(--accent3));color:var(--bg);border:none;padding:13px 44px;font-family:'Syne',sans-serif;font-size:11px;font-weight:800;letter-spacing:3px;cursor:pointer;z-index:501;border-radius:50px;box-shadow:0 4px 18px rgba(0,245,160,.25);}
+.loader{display:none;position:fixed;inset:0;background:var(--bg);z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:18px;}
+.loader.on{display:flex;}
+.lring-wrap{position:relative;width:64px;height:64px;}
+.lring{position:absolute;inset:0;border:1px solid rgba(255,255,255,.06);border-top-color:var(--accent);border-radius:50%;animation:spin .9s linear infinite;}
+.lring2{position:absolute;inset:8px;border:1px solid rgba(255,255,255,.04);border-bottom-color:var(--accent2);border-radius:50%;animation:spin 1.4s linear infinite reverse;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ltxt{font-size:10px;letter-spacing:4px;color:var(--muted);text-transform:uppercase;animation:pulse 1.5s ease infinite;}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+.footer{text-align:center;padding:18px;font-size:9px;letter-spacing:2px;color:var(--muted);opacity:.15;}
+.input-3d-banner{margin:0 16px 12px;height:76px;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.06);border-radius:12px;background:rgba(255,255,255,.02);}
+#inputWaveCvs{display:block;width:100%;height:100%;}
+.input-3d-lbl{position:absolute;top:50%;left:16px;transform:translateY(-50%);font-family:'Syne',sans-serif;font-size:10px;font-weight:800;letter-spacing:3px;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;background-clip:text;color:transparent;pointer-events:none;}
+.games-3d-banner{margin:14px 16px 12px;height:76px;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.06);border-radius:12px;background:rgba(255,255,255,.02);}
+#gamesCvs{display:block;width:100%;height:100%;}
+.games-3d-lbl{position:absolute;top:50%;left:16px;transform:translateY(-50%);font-family:'Syne',sans-serif;font-size:10px;font-weight:800;letter-spacing:3px;background:linear-gradient(135deg,var(--accent2),var(--accent3));-webkit-background-clip:text;background-clip:text;color:transparent;pointer-events:none;}
+</style>
+</head>
+<body>
+<div class="loader" id="loader"><div class="lring-wrap"><div class="lring"></div><div class="lring2"></div></div><div class="ltxt">Analyzing...</div></div>
+
+<div class="modal" id="langModal">
+  <div class="modal-inner">
+    <div class="modal-ttl">// Select Language</div>
+    <div class="lang-grid" id="langGrid"></div>
+  </div>
+  <button class="modal-close" onclick="closeLang()">✕ CLOSE</button>
+</div>
+
+<div id="appShell">
+  <div class="header">
+    <div class="logo">COGNITIV.</div>
+    <div class="hdr-right">
+      <div class="streak">🔥<span id="sBadge">0</span></div>
+      <button class="lang-btn" onclick="openLang()"><span id="cFlag">🌐</span><span id="cCode">EN</span></button>
+    </div>
+  </div>
+  <div class="screens">
+    <!-- PROFILE -->
+    <div class="screen active" id="screen-profile">
+      <div id="pView">
+        <div class="p-hero"><canvas id="profileBg"></canvas><div class="p-ava" id="pAva">👤</div><div class="p-name" id="pName">Setup Profile</div><div class="p-sub" id="pSub">Tap edit to get started</div></div>
+        <div class="pstats"><div class="pst"><div class="pst-v" id="ps1">0🔥</div><div class="pst-l" id="lbl-streak">Streak</div></div><div class="pst"><div class="pst-v" id="ps2">—</div><div class="pst-l" id="lbl-avgscore">Avg Score</div></div><div class="pst"><div class="pst-v" id="ps3">0</div><div class="pst-l" id="lbl-days">Days</div></div></div>
+        <div class="sec" id="lbl-trend">// 7-Day Trend</div>
+        <div class="chart"><div class="chart-hdr"><div class="chart-ttl" id="lbl-cogscore">Cognitive Score</div><div class="chart-avg" id="lbl-avg-wrap">Avg: <b id="cAvg">—</b></div></div><div class="bars" id="cBars"></div><div style="display:flex;justify-content:space-between;margin-top:5px" id="cDays"></div></div>
+        <button class="abtn out" id="btn-newentry" onclick="showScreen('input')">▶ New Entry</button>
+        <button class="abtn" id="btn-editprofile" onclick="showEdit()" style="margin-bottom:8px">✎ Edit Profile</button>
+        <div class="footer">COGNITIV v5.0</div>
+      </div>
+      <div id="pEdit" style="display:none">
+        <div class="sec" id="lbl-yourprofile">// Your Profile</div>
+        <div class="card">
+          <label class="flbl" id="lbl-name">Name</label><input class="finp" id="eN" placeholder="—" maxlength="30">
+          <label class="flbl" id="lbl-age">Age</label><input class="finp" id="eA" type="number" placeholder="—" min="13" max="99">
+          <label class="flbl" id="lbl-goal">Main Goal</label><input class="finp" id="eG" id="ph-goal" placeholder="e.g. Deep focus, Better sleep...">
+          <label class="flbl" id="lbl-chronotype">Chronotype</label>
+          <div class="krow"><button class="kopt" id="kEB" onclick="selChron('EB')"><span class="kico">🌅</span><span id="lbl-earlybird">Early Bird</span></button><button class="kopt" id="kNO" onclick="selChron('NO')"><span class="kico">🌙</span><span id="lbl-nightowl">Night Owl</span></button></div>
+        </div>
+        <button class="abtn" id="btn-saveprofile" onclick="saveProfile()">✓ Save Profile</button>
+        <div class="footer">COGNITIV v5.0</div>
+      </div>
+    </div>
+    <!-- INPUT -->
+    <div class="screen" id="screen-input">
+      <div class="input-3d-banner"><canvas id="inputWaveCvs"></canvas><div class="input-3d-lbl">// DAILY METRICS</div></div>
+      <div class="sl-card"><div class="sl-row"><div><div class="sl-name" id="sl-sleep-name">Sleep</div><div class="sl-sub" id="sl-sleep-sub">Hours last night</div></div><div class="sl-val" id="vSleep">7.5h</div></div><input type="range" id="rSleep" min="4" max="10" step="0.5" value="7.5" oninput="upd('Sleep',this.value,'h')"><div class="sl-lbls"><span>4h</span><span>10h</span></div></div>
+      <div class="sl-card"><div class="sl-row"><div><div class="sl-name" id="sl-focus-name">Focus</div><div class="sl-sub" id="sl-focus-sub">Self-rated score</div></div><div class="sl-val" id="vFocus">7/10</div></div><input type="range" id="rFocus" min="1" max="10" step="1" value="7" oninput="upd('Focus',this.value,'/10')"><div class="sl-lbls"><span>1</span><span>10</span></div></div>
+      <div class="sl-card"><div class="sl-row"><div><div class="sl-name" id="sl-med-name">Meditation</div><div class="sl-sub" id="sl-med-sub">Minutes today</div></div><div class="sl-val" id="vMed">20m</div></div><input type="range" id="rMed" min="0" max="60" step="5" value="20" oninput="upd('Med',this.value,'m')"><div class="sl-lbls"><span>0m</span><span>60m</span></div></div>
+      <div class="sl-card"><div class="sl-row"><div><div class="sl-name" id="sl-dw-name">Deep Work</div><div class="sl-sub" id="sl-dw-sub">Focused minutes</div></div><div class="sl-val" id="vDW">90m</div></div><input type="range" id="rDW" min="0" max="240" step="15" value="90" oninput="upd('DW',this.value,'m')"><div class="sl-lbls"><span>0m</span><span>240m</span></div></div>
+      <div class="sl-card"><div class="sl-row"><div><div class="sl-name" id="sl-stress-name">Stress</div><div class="sl-sub" id="sl-stress-sub">Current level</div></div><div class="sl-val" id="vStress">4/10</div></div><input type="range" id="rStress" min="1" max="10" step="1" value="4" oninput="upd('Stress',this.value,'/10')"><div class="sl-lbls"><span>1</span><span>10</span></div></div>
+      <button class="abtn" id="btn-analyze" onclick="analyze()" style="margin-bottom:8px">▶ Analyze Performance</button>
+      <div class="footer">COGNITIV v5.0</div>
+    </div>
+    <!-- REPORT -->
+    <div class="screen" id="screen-report">
+      <div class="score-hero"><canvas id="scoreWaveBg"></canvas><div class="sc-lbl">Composite Score</div><div class="sc-num" id="scNum">--</div><div class="sc-bar-w"><div class="sc-bar" id="scBar" style="width:0%"></div></div><div class="sc-grade" id="scGrade">—</div></div>
+      <div class="mets" id="mets"></div>
+      <div class="tabs"><button class="tab-btn active" onclick="switchTab('issues')">Issues</button><button class="tab-btn" onclick="switchTab('plan')">Plan</button></div>
+      <div class="tab-pane active" id="tab-issues"></div>
+      <div class="tab-pane" id="tab-plan"></div>
+      <div class="footer">COGNITIV v5.0</div>
+    </div>
+    <!-- GAMES -->
+    <div class="screen" id="screen-games">
+      <div class="games-3d-banner"><canvas id="gamesCvs"></canvas><div class="games-3d-lbl">// BRAIN TRAINING</div></div>
+      <div class="game-grid" id="gameGrid">
+        <div class="game-card" onclick="startGame('math')"><div class="g-ico">🧮</div><div class="g-name">Math Sprint</div><div class="g-desc">Rapid arithmetic to boost prefrontal cortex</div><div class="gdiff easy">EASY</div></div>
+        <div class="game-card" onclick="startGame('memory')"><div class="g-ico">🃏</div><div class="g-name">Memory Match</div><div class="g-desc">Flip cards to train working memory</div><div class="gdiff med">MEDIUM</div></div>
+        <div class="game-card" onclick="startGame('word')"><div class="g-ico">🔤</div><div class="g-name">Word Recall</div><div class="g-desc">Memorize and type back word sequences</div><div class="gdiff med">MEDIUM</div></div>
+        <div class="game-card" onclick="startGame('react')"><div class="g-ico">⚡</div><div class="g-name">Reaction Test</div><div class="g-desc">Tap green to measure neural speed</div><div class="gdiff hard">HARD</div></div>
+      </div>
+      <div class="game-play" id="gPlay">
+        <div class="g-top"><button class="g-back" onclick="backGames()">← Back</button><div><div class="g-sc-l">SCORE</div><div class="g-sc-v" id="gScV">0</div></div></div>
+        <div class="gtimer" id="gTimer" style="width:100%"></div>
+        <div class="gbox" id="gBox"></div>
+      </div>
+      <div class="footer">COGNITIV v5.0</div>
+    </div>
+    <!-- CHAT -->
+    <div class="screen" id="screen-chat">
+      <div class="chat-msgs" id="chatMsgs">
+        <div class="chat-welcome"><div class="cw-ico">🧠</div><div class="cw-title">COGNITIV AI</div><div class="cw-sub" id="cwSub">Your personal cognitive performance coach. I respond in any language you write.</div></div>
+      </div>
+      <div class="chat-bottom">
+        <div class="chat-sugg" id="chatSugg"></div>
+        <div class="chat-inp-row"><textarea class="chat-inp" id="chatInp" placeholder="Ask your coach..." rows="1"></textarea><button class="send-btn" onclick="sendMsg()">▶</button></div>
+      </div>
+    </div>
+  </div>
+  <nav class="nav">
+    <button class="nb on" onclick="showScreen('profile')" id="nb-profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Profile</button>
+    <button class="nb" onclick="showScreen('input')" id="nb-input"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M12 8v8"/></svg>Input</button>
+    <button class="nb" onclick="showScreen('report')" id="nb-report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-6"/></svg>Report</button>
+    <button class="nb" onclick="showScreen('games')" id="nb-games"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M8 11v4M6 13h4M15 12h2M15 15h2"/></svg>Games</button>
+    <button class="nb" onclick="showScreen('chat')" id="nb-chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Coach</button>
+  </nav>
+</div>
+
+<script>
+// ── STORAGE ──
+const S={get:k=>{try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+let profile=S.get('cog_profile')||{};
+let entries=S.get('cog_entries')||[];
+let streak=S.get('cog_streak')||{count:0,last:''};
+let lang=S.get('cog_lang')||{code:'EN',flag:'🌐',name:'English'};
+
+// ── LANGUAGES (FULLY FIXED) ──
+const LANGS=[
+  {code:'EN',flag:'🇬🇧',name:'English',nat:'English'},
+  {code:'TR',flag:'🇹🇷',name:'Turkish',nat:'Türkçe'},
+  {code:'ES',flag:'🇪🇸',name:'Spanish',nat:'Español'},
+  {code:'FR',flag:'🇫🇷',name:'French',nat:'Français'},
+  {code:'DE',flag:'🇩🇪',name:'German',nat:'Deutsch'},
+  {code:'IT',flag:'🇮🇹',name:'Italian',nat:'Italiano'},
+  {code:'PT',flag:'🇧🇷',name:'Portuguese',nat:'Português'},
+  {code:'RU',flag:'🇷🇺',name:'Russian',nat:'Русский'},
+  {code:'ZH',flag:'🇨🇳',name:'Chinese',nat:'中文'},
+  {code:'JA',flag:'🇯🇵',name:'Japanese',nat:'日本語'},
+  {code:'AR',flag:'🇸🇦',name:'Arabic',nat:'العربية'},
+  {code:'KO',flag:'🇰🇷',name:'Korean',nat:'한국어'}
+];
+
+const T={
+  EN:{
+    welcome:"Your personal cognitive performance coach. I respond in any language you write.",
+    suggs:["How can I improve my sleep?","Analyze my last score","What is deep work?","Stress reduction tips","How to boost focus?"],
+    streak:"Streak",avgScore:"Avg Score",days:"Days",trend:"// 7-Day Trend",cogScore:"Cognitive Score",avg:"Avg:",
+    newEntry:"▶ New Entry",editProfile:"✎ Edit Profile",saveProfile:"✓ Save Profile",
+    yourProfile:"// Your Profile",name:"Name",age:"Age",goal:"Main Goal",chronotype:"Chronotype",
+    earlyBird:"Early Bird",nightOwl:"Night Owl",
+    sleep:"Sleep",sleepSub:"Hours last night",focus:"Focus",focusSub:"Self-rated score",
+    meditation:"Meditation",meditationSub:"Minutes today",deepWork:"Deep Work",deepWorkSub:"Focused minutes",
+    stress:"Stress",stressSub:"Current level",analyze:"▶ Analyze Performance",
+    compScore:"Composite Score",issues:"Issues",plan:"Plan",
+    navProfile:"Profile",navInput:"Input",navReport:"Report",navGames:"Games",navCoach:"Coach",
+    setupProfile:"Setup Profile",setupSub:"Tap edit to get started",
+    noData:"No data for today. Submit a daily input first.",
+    chatPlaceholder:"Ask your coach...",analyzing:"Analyzing...",
+    mathSprint:"Math Sprint",mathDesc:"Rapid arithmetic to boost prefrontal cortex",
+    memMatch:"Memory Match",memDesc:"Flip cards to train working memory",
+    wordRecall:"Word Recall",wordDesc:"Memorize and type back word sequences",
+    reactTest:"Reaction Test",reactDesc:"Tap green to measure neural speed",
+    score:"SCORE",back:"← Back",
+    dailyMetrics:"// DAILY METRICS",brainTraining:"// BRAIN TRAINING"
+  },
+  TR:{
+    welcome:"Kişisel bilişsel performans koçun. Hangi dilde yazarsan o dilde cevap veririm.",
+    suggs:["Uyku kalitemi nasıl artırırım?","Son skorumu analiz et","Derin çalışma nedir?","Stres azaltma ipuçları","Odağımı nasıl artırırım?"],
+    streak:"Seri",avgScore:"Ort. Skor",days:"Gün",trend:"// 7 Günlük Trend",cogScore:"Bilişsel Skor",avg:"Ort.:",
+    newEntry:"▶ Yeni Kayıt",editProfile:"✎ Profili Düzenle",saveProfile:"✓ Kaydet",
+    yourProfile:"// Profilin",name:"Ad",age:"Yaş",goal:"Ana Hedef",chronotype:"Kronotip",
+    earlyBird:"Sabah Kuşu",nightOwl:"Gece Kuşu",
+    sleep:"Uyku",sleepSub:"Dün gece saat",focus:"Odak",focusSub:"Kendi değerlendirmen",
+    meditation:"Meditasyon",meditationSub:"Bugün dakika",deepWork:"Derin Çalışma",deepWorkSub:"Odaklanma dakikası",
+    stress:"Stres",stressSub:"Mevcut seviye",analyze:"▶ Performansı Analiz Et",
+    compScore:"Bileşik Skor",issues:"Sorunlar",plan:"Plan",
+    navProfile:"Profil",navInput:"Giriş",navReport:"Rapor",navGames:"Oyunlar",navCoach:"Koç",
+    setupProfile:"Profil Oluştur",setupSub:"Başlamak için düzenle'ye dokun",
+    noData:"Bugün veri yok. Önce günlük giriş yap.",
+    chatPlaceholder:"Koçuna sor...",analyzing:"Analiz ediliyor...",
+    mathSprint:"Matematik Sprint",mathDesc:"Prefrontal korteksi güçlendirmek için hızlı aritmetik",
+    memMatch:"Hafıza Eşleştirme",memDesc:"Çalışma belleğini antrenman için kartları çevir",
+    wordRecall:"Kelime Hatırlama",wordDesc:"Kelime dizilerini ezberle ve yaz",
+    reactTest:"Tepki Testi",reactDesc:"Nöral hızını ölçmek için yeşile dokun",
+    score:"SKOR",back:"← Geri",
+    dailyMetrics:"// GÜNLÜK METRİKLER",brainTraining:"// BEYİN ANTRENMAN"
+  },
+  ES:{
+    welcome:"Tu entrenador personal de rendimiento cognitivo. Respondo en cualquier idioma.",
+    suggs:["¿Cómo mejorar mi sueño?","Analiza mi último puntaje","¿Qué es el trabajo profundo?","Consejos para el estrés","¿Cómo mejorar el enfoque?"],
+    streak:"Racha",avgScore:"Prom. Puntaje",days:"Días",trend:"// Tendencia 7 Días",cogScore:"Puntaje Cognitivo",avg:"Prom.:",
+    newEntry:"▶ Nueva Entrada",editProfile:"✎ Editar Perfil",saveProfile:"✓ Guardar",
+    yourProfile:"// Tu Perfil",name:"Nombre",age:"Edad",goal:"Objetivo",chronotype:"Cronotipo",
+    earlyBird:"Madrugador",nightOwl:"Noctámbulo",
+    sleep:"Sueño",sleepSub:"Horas anoche",focus:"Enfoque",focusSub:"Autoevaluación",
+    meditation:"Meditación",meditationSub:"Minutos hoy",deepWork:"Trabajo Profundo",deepWorkSub:"Minutos enfocados",
+    stress:"Estrés",stressSub:"Nivel actual",analyze:"▶ Analizar Rendimiento",
+    compScore:"Puntaje Compuesto",issues:"Problemas",plan:"Plan",
+    navProfile:"Perfil",navInput:"Entrada",navReport:"Reporte",navGames:"Juegos",navCoach:"Coach",
+    setupProfile:"Configurar Perfil",setupSub:"Toca editar para comenzar",
+    noData:"Sin datos hoy. Ingresa datos primero.",
+    chatPlaceholder:"Pregunta a tu coach...",analyzing:"Analizando...",
+    mathSprint:"Sprint Matemático",mathDesc:"Aritmética rápida para el córtex prefrontal",
+    memMatch:"Memoria Visual",memDesc:"Voltea cartas para entrenar la memoria",
+    wordRecall:"Recuerdo de Palabras",wordDesc:"Memoriza y escribe secuencias de palabras",
+    reactTest:"Test de Reacción",reactDesc:"Toca verde para medir velocidad neural",
+    score:"PUNTAJE",back:"← Volver",
+    dailyMetrics:"// MÉTRICAS DIARIAS",brainTraining:"// ENTRENAMIENTO CEREBRAL"
+  },
+  FR:{
+    welcome:"Votre coach personnel de performance cognitive. Je réponds dans n'importe quelle langue.",
+    suggs:["Comment améliorer mon sommeil?","Analyser mon score","Qu'est-ce que le travail profond?","Conseils anti-stress","Booster ma concentration?"],
+    streak:"Série",avgScore:"Score Moy.",days:"Jours",trend:"// Tendance 7 Jours",cogScore:"Score Cognitif",avg:"Moy.:",
+    newEntry:"▶ Nouvelle Entrée",editProfile:"✎ Modifier Profil",saveProfile:"✓ Sauvegarder",
+    yourProfile:"// Votre Profil",name:"Nom",age:"Âge",goal:"Objectif",chronotype:"Chronotype",
+    earlyBird:"Lève-tôt",nightOwl:"Couche-tard",
+    sleep:"Sommeil",sleepSub:"Heures cette nuit",focus:"Concentration",focusSub:"Auto-évaluation",
+    meditation:"Méditation",meditationSub:"Minutes aujourd'hui",deepWork:"Travail Profond",deepWorkSub:"Minutes focalisées",
+    stress:"Stress",stressSub:"Niveau actuel",analyze:"▶ Analyser Performance",
+    compScore:"Score Composite",issues:"Problèmes",plan:"Plan",
+    navProfile:"Profil",navInput:"Entrée",navReport:"Rapport",navGames:"Jeux",navCoach:"Coach",
+    setupProfile:"Créer Profil",setupSub:"Appuyer modifier pour commencer",
+    noData:"Pas de données aujourd'hui. Saisir d'abord.",
+    chatPlaceholder:"Demandez à votre coach...",analyzing:"Analyse...",
+    mathSprint:"Sprint Maths",mathDesc:"Arithmétique rapide pour le cortex préfrontal",
+    memMatch:"Mémoire Visuelle",memDesc:"Retournez les cartes pour entraîner la mémoire",
+    wordRecall:"Rappel de Mots",wordDesc:"Mémorisez et tapez des séquences de mots",
+    reactTest:"Test de Réaction",reactDesc:"Touchez vert pour mesurer la vitesse neurale",
+    score:"SCORE",back:"← Retour",
+    dailyMetrics:"// MÉTRIQUES QUOTIDIENNES",brainTraining:"// ENTRAÎNEMENT CÉRÉBRAL"
+  },
+  DE:{
+    welcome:"Dein persönlicher kognitiver Performance-Coach. Ich antworte in jeder Sprache.",
+    suggs:["Schlaf verbessern?","Letzten Score analysieren","Was ist Deep Work?","Stresstipps","Fokus steigern?"],
+    streak:"Serie",avgScore:"Ø Score",days:"Tage",trend:"// 7-Tage-Trend",cogScore:"Kognitiver Score",avg:"Ø:",
+    newEntry:"▶ Neuer Eintrag",editProfile:"✎ Profil Bearbeiten",saveProfile:"✓ Speichern",
+    yourProfile:"// Dein Profil",name:"Name",age:"Alter",goal:"Hauptziel",chronotype:"Chronotyp",
+    earlyBird:"Frühaufsteher",nightOwl:"Nachteule",
+    sleep:"Schlaf",sleepSub:"Stunden letzte Nacht",focus:"Fokus",focusSub:"Selbstbewertung",
+    meditation:"Meditation",meditationSub:"Minuten heute",deepWork:"Tiefarbeit",deepWorkSub:"Fokussierte Minuten",
+    stress:"Stress",stressSub:"Aktuelles Niveau",analyze:"▶ Leistung Analysieren",
+    compScore:"Gesamtscore",issues:"Probleme",plan:"Plan",
+    navProfile:"Profil",navInput:"Eingabe",navReport:"Bericht",navGames:"Spiele",navCoach:"Coach",
+    setupProfile:"Profil Erstellen",setupSub:"Tippe Bearbeiten zum Starten",
+    noData:"Keine Daten heute. Zuerst Eingabe machen.",
+    chatPlaceholder:"Coach fragen...",analyzing:"Analysiere...",
+    mathSprint:"Mathe-Sprint",mathDesc:"Schnelle Arithmetik für den präfrontalen Kortex",
+    memMatch:"Gedächtnisübung",memDesc:"Karten umdrehen für Arbeitsgedächtnis-Training",
+    wordRecall:"Wörter Erinnern",wordDesc:"Wortsequenzen auswendig lernen und tippen",
+    reactTest:"Reaktionstest",reactDesc:"Grün antippen für neuronale Geschwindigkeit",
+    score:"PUNKTE",back:"← Zurück",
+    dailyMetrics:"// TÄGLICHE METRIKEN",brainTraining:"// GEHIRNTRAINING"
+  },
+  IT:{
+    welcome:"Il tuo allenatore personale di performance cognitiva. Rispondo in qualsiasi lingua.",
+    suggs:["Come migliorare il sonno?","Analizza il mio punteggio","Cos'è il deep work?","Consigli stress","Migliorare la concentrazione?"],
+    streak:"Serie",avgScore:"Punteggio Med.",days:"Giorni",trend:"// Tendenza 7 Giorni",cogScore:"Punteggio Cognitivo",avg:"Med.:",
+    newEntry:"▶ Nuova Voce",editProfile:"✎ Modifica Profilo",saveProfile:"✓ Salva",
+    yourProfile:"// Il Tuo Profilo",name:"Nome",age:"Età",goal:"Obiettivo",chronotype:"Cronotipo",
+    earlyBird:"Mattiniero",nightOwl:"Nottambulo",
+    sleep:"Sonno",sleepSub:"Ore stanotte",focus:"Concentrazione",focusSub:"Autovalutazione",
+    meditation:"Meditazione",meditationSub:"Minuti oggi",deepWork:"Lavoro Profondo",deepWorkSub:"Minuti focalizzati",
+    stress:"Stress",stressSub:"Livello attuale",analyze:"▶ Analizza Prestazione",
+    compScore:"Punteggio Composito",issues:"Problemi",plan:"Piano",
+    navProfile:"Profilo",navInput:"Inserimento",navReport:"Report",navGames:"Giochi",navCoach:"Coach",
+    setupProfile:"Imposta Profilo",setupSub:"Tocca modifica per iniziare",
+    noData:"Nessun dato oggi. Inserisci prima i dati.",
+    chatPlaceholder:"Chiedi al tuo coach...",analyzing:"Analisi...",
+    mathSprint:"Sprint Matematica",mathDesc:"Aritmetica rapida per la corteccia prefrontale",
+    memMatch:"Abbinamento Memoria",memDesc:"Gira le carte per allenare la memoria",
+    wordRecall:"Richiamo Parole",wordDesc:"Memorizza e digita sequenze di parole",
+    reactTest:"Test di Reazione",reactDesc:"Tocca verde per misurare la velocità neurale",
+    score:"PUNTEGGIO",back:"← Indietro",
+    dailyMetrics:"// METRICHE GIORNALIERE",brainTraining:"// ALLENAMENTO CEREBRALE"
+  },
+  PT:{
+    welcome:"Seu treinador pessoal de desempenho cognitivo. Respondo em qualquer idioma.",
+    suggs:["Como melhorar meu sono?","Analise minha pontuação","O que é deep work?","Dicas de estresse","Melhorar o foco?"],
+    streak:"Sequência",avgScore:"Pontuação Méd.",days:"Dias",trend:"// Tendência 7 Dias",cogScore:"Pontuação Cognitiva",avg:"Méd.:",
+    newEntry:"▶ Nova Entrada",editProfile:"✎ Editar Perfil",saveProfile:"✓ Salvar",
+    yourProfile:"// Seu Perfil",name:"Nome",age:"Idade",goal:"Objetivo",chronotype:"Cronotipo",
+    earlyBird:"Matutino",nightOwl:"Vespertino",
+    sleep:"Sono",sleepSub:"Horas ontem à noite",focus:"Foco",focusSub:"Autoavaliação",
+    meditation:"Meditação",meditationSub:"Minutos hoje",deepWork:"Trabalho Profundo",deepWorkSub:"Minutos focados",
+    stress:"Estresse",stressSub:"Nível atual",analyze:"▶ Analisar Desempenho",
+    compScore:"Pontuação Composta",issues:"Problemas",plan:"Plano",
+    navProfile:"Perfil",navInput:"Entrada",navReport:"Relatório",navGames:"Jogos",navCoach:"Coach",
+    setupProfile:"Configurar Perfil",setupSub:"Toque editar para começar",
+    noData:"Sem dados hoje. Insira dados primeiro.",
+    chatPlaceholder:"Pergunte ao seu coach...",analyzing:"Analisando...",
+    mathSprint:"Sprint Matemática",mathDesc:"Aritmética rápida para o córtex pré-frontal",
+    memMatch:"Combinação de Memória",memDesc:"Vire cartas para treinar memória",
+    wordRecall:"Recordação de Palavras",wordDesc:"Memorize e digite sequências de palavras",
+    reactTest:"Teste de Reação",reactDesc:"Toque verde para medir velocidade neural",
+    score:"PONTUAÇÃO",back:"← Voltar",
+    dailyMetrics:"// MÉTRICAS DIÁRIAS",brainTraining:"// TREINO CEREBRAL"
+  },
+  RU:{
+    welcome:"Ваш личный коуч по когнитивной эффективности. Отвечаю на любом языке.",
+    suggs:["Как улучшить сон?","Анализ последнего скора","Что такое глубокая работа?","Советы по стрессу","Повысить концентрацию?"],
+    streak:"Серия",avgScore:"Средний балл",days:"Дни",trend:"// 7-дневный тренд",cogScore:"Когнитивный балл",avg:"Ср.:",
+    newEntry:"▶ Новая запись",editProfile:"✎ Ред. профиль",saveProfile:"✓ Сохранить",
+    yourProfile:"// Ваш профиль",name:"Имя",age:"Возраст",goal:"Цель",chronotype:"Хронотип",
+    earlyBird:"Жаворонок",nightOwl:"Сова",
+    sleep:"Сон",sleepSub:"Часов прошлой ночью",focus:"Фокус",focusSub:"Самооценка",
+    meditation:"Медитация",meditationSub:"Минут сегодня",deepWork:"Глубокая работа",deepWorkSub:"Минут фокуса",
+    stress:"Стресс",stressSub:"Текущий уровень",analyze:"▶ Анализ эффективности",
+    compScore:"Общий балл",issues:"Проблемы",plan:"План",
+    navProfile:"Профиль",navInput:"Ввод",navReport:"Отчёт",navGames:"Игры",navCoach:"Коуч",
+    setupProfile:"Настройка профиля",setupSub:"Нажмите редактировать",
+    noData:"Нет данных сегодня. Сначала введите данные.",
+    chatPlaceholder:"Спросите коуча...",analyzing:"Анализирую...",
+    mathSprint:"Матем. спринт",mathDesc:"Быстрая арифметика для префронтальной коры",
+    memMatch:"Мемори",memDesc:"Переворачивайте карточки для тренировки памяти",
+    wordRecall:"Запоминание слов",wordDesc:"Запомните и введите последовательности слов",
+    reactTest:"Тест реакции",reactDesc:"Нажмите зелёное для измерения скорости",
+    score:"ОЧКИ",back:"← Назад",
+    dailyMetrics:"// ЕЖЕДНЕВНЫЕ МЕТРИКИ",brainTraining:"// ТРЕНИРОВКА МОЗГА"
+  },
+  ZH:{
+    welcome:"您的个人认知表现教练。我用您写作的任何语言回复。",
+    suggs:["如何改善睡眠？","分析我的分数","什么是深度工作？","减压技巧","如何提高专注力？"],
+    streak:"连续",avgScore:"平均分",days:"天",trend:"// 7天趋势",cogScore:"认知评分",avg:"均:",
+    newEntry:"▶ 新记录",editProfile:"✎ 编辑资料",saveProfile:"✓ 保存",
+    yourProfile:"// 您的资料",name:"姓名",age:"年龄",goal:"主要目标",chronotype:"时型",
+    earlyBird:"早起型",nightOwl:"夜猫型",
+    sleep:"睡眠",sleepSub:"昨晚小时数",focus:"专注",focusSub:"自我评分",
+    meditation:"冥想",meditationSub:"今日分钟",deepWork:"深度工作",deepWorkSub:"专注分钟",
+    stress:"压力",stressSub:"当前水平",analyze:"▶ 分析表现",
+    compScore:"综合评分",issues:"问题",plan:"计划",
+    navProfile:"资料",navInput:"输入",navReport:"报告",navGames:"游戏",navCoach:"教练",
+    setupProfile:"设置资料",setupSub:"点击编辑开始",
+    noData:"今日无数据，请先输入。",
+    chatPlaceholder:"问您的教练...",analyzing:"分析中...",
+    mathSprint:"数学冲刺",mathDesc:"快速算术激活前额叶皮层",
+    memMatch:"记忆配对",memDesc:"翻转卡片训练工作记忆",
+    wordRecall:"单词记忆",wordDesc:"记住并输入单词序列",
+    reactTest:"反应测试",reactDesc:"点击绿色测量神经速度",
+    score:"分数",back:"← 返回",
+    dailyMetrics:"// 每日指标",brainTraining:"// 脑力训练"
+  },
+  JA:{
+    welcome:"あなたの個人的な認知パフォーマンスコーチ。どの言語でも対応します。",
+    suggs:["睡眠を改善するには？","スコアを分析","ディープワークとは？","ストレス軽減","集中力アップ"],
+    streak:"連続",avgScore:"平均スコア",days:"日",trend:"// 7日間トレンド",cogScore:"認知スコア",avg:"平均:",
+    newEntry:"▶ 新規記録",editProfile:"✎ プロフィール編集",saveProfile:"✓ 保存",
+    yourProfile:"// プロフィール",name:"名前",age:"年齢",goal:"目標",chronotype:"クロノタイプ",
+    earlyBird:"朝型",nightOwl:"夜型",
+    sleep:"睡眠",sleepSub:"昨夜の時間数",focus:"集中力",focusSub:"自己評価",
+    meditation:"瞑想",meditationSub:"今日の分数",deepWork:"深い作業",deepWorkSub:"集中分数",
+    stress:"ストレス",stressSub:"現在のレベル",analyze:"▶ パフォーマンス分析",
+    compScore:"総合スコア",issues:"問題",plan:"プラン",
+    navProfile:"プロフィール",navInput:"入力",navReport:"レポート",navGames:"ゲーム",navCoach:"コーチ",
+    setupProfile:"プロフィール設定",setupSub:"編集をタップして開始",
+    noData:"今日のデータなし。まず入力してください。",
+    chatPlaceholder:"コーチに質問...",analyzing:"分析中...",
+    mathSprint:"数学スプリント",mathDesc:"前頭前皮質を鍛える高速算術",
+    memMatch:"記憶マッチング",memDesc:"カードをめくってワーキングメモリを鍛える",
+    wordRecall:"単語記憶",wordDesc:"単語列を覚えて入力する",
+    reactTest:"反応テスト",reactDesc:"緑をタップして神経速度を測定",
+    score:"スコア",back:"← 戻る",
+    dailyMetrics:"// 毎日の指標",brainTraining:"// 脳トレーニング"
+  },
+  AR:{
+    welcome:"مدربك الشخصي للأداء المعرفي. أرد بأي لغة تكتب بها.",
+    suggs:["كيف أحسن نومي؟","تحليل آخر نتائجي","ما هو العمل العميق؟","نصائح التوتر","تحسين التركيز؟"],
+    streak:"التسلسل",avgScore:"متوسط الدرجة",days:"أيام",trend:"// اتجاه 7 أيام",cogScore:"الدرجة المعرفية",avg:"متوسط:",
+    newEntry:"▶ إدخال جديد",editProfile:"✎ تعديل الملف",saveProfile:"✓ حفظ",
+    yourProfile:"// ملفك الشخصي",name:"الاسم",age:"العمر",goal:"الهدف الرئيسي",chronotype:"نمط النوم",
+    earlyBird:"صاحي الصباح",nightOwl:"ساهر الليل",
+    sleep:"النوم",sleepSub:"ساعات الليلة الماضية",focus:"التركيز",focusSub:"تقييم ذاتي",
+    meditation:"التأمل",meditationSub:"دقائق اليوم",deepWork:"العمل العميق",deepWorkSub:"دقائق التركيز",
+    stress:"التوتر",stressSub:"المستوى الحالي",analyze:"▶ تحليل الأداء",
+    compScore:"الدرجة المركبة",issues:"المشكلات",plan:"الخطة",
+    navProfile:"الملف",navInput:"إدخال",navReport:"تقرير",navGames:"ألعاب",navCoach:"مدرب",
+    setupProfile:"إعداد الملف",setupSub:"اضغط تعديل للبدء",
+    noData:"لا بيانات اليوم. أدخل البيانات أولاً.",
+    chatPlaceholder:"اسأل مدربك...",analyzing:"جاري التحليل...",
+    mathSprint:"سباق رياضيات",mathDesc:"حساب سريع لتعزيز القشرة الأمامية",
+    memMatch:"مطابقة الذاكرة",memDesc:"اقلب البطاقات لتدريب الذاكرة العاملة",
+    wordRecall:"استرجاع الكلمات",wordDesc:"احفظ وأدخل تسلسلات الكلمات",
+    reactTest:"اختبار رد الفعل",reactDesc:"اضغط الأخضر لقياس السرعة العصبية",
+    score:"النقاط",back:"→ رجوع",
+    dailyMetrics:"// المقاييس اليومية",brainTraining:"// تدريب الدماغ"
+  },
+  KO:{
+    welcome:"당신의 개인 인지 성능 코치입니다. 어떤 언어로 쓰셔도 답변드립니다.",
+    suggs:["수면 개선 방법?","마지막 점수 분석","딥 워크란?","스트레스 감소 팁","집중력 향상?"],
+    streak:"연속",avgScore:"평균 점수",days:"일",trend:"// 7일 트렌드",cogScore:"인지 점수",avg:"평균:",
+    newEntry:"▶ 새 기록",editProfile:"✎ 프로필 편집",saveProfile:"✓ 저장",
+    yourProfile:"// 내 프로필",name:"이름",age:"나이",goal:"주요 목표",chronotype:"크로노타입",
+    earlyBird:"아침형",nightOwl:"저녁형",
+    sleep:"수면",sleepSub:"어젯밤 시간",focus:"집중력",focusSub:"자기 평가",
+    meditation:"명상",meditationSub:"오늘 분 수",deepWork:"딥 워크",deepWorkSub:"집중 분 수",
+    stress:"스트레스",stressSub:"현재 수준",analyze:"▶ 성과 분석",
+    compScore:"종합 점수",issues:"문제",plan:"계획",
+    navProfile:"프로필",navInput:"입력",navReport:"보고서",navGames:"게임",navCoach:"코치",
+    setupProfile:"프로필 설정",setupSub:"편집을 눌러 시작하세요",
+    noData:"오늘 데이터 없음. 먼저 입력하세요.",
+    chatPlaceholder:"코치에게 질문...",analyzing:"분석 중...",
+    mathSprint:"수학 스프린트",mathDesc:"전두엽 피질 강화를 위한 빠른 산술",
+    memMatch:"메모리 매칭",memDesc:"작업 기억 훈련을 위해 카드 뒤집기",
+    wordRecall:"단어 기억",wordDesc:"단어 시퀀스를 외우고 입력하세요",
+    reactTest:"반응 테스트",reactDesc:"초록색 클릭으로 신경 속도 측정",
+    score:"점수",back:"← 뒤로",
+    dailyMetrics:"// 일일 메트릭",brainTraining:"// 뇌 훈련"
+  }
+};
+
+// ── APPLY LANG — ALL UI ELEMENTS ──
+function applyLang(){
+  const t=T[lang.code]||T['EN'];
+  // Header
+  document.getElementById('cFlag').textContent=lang.flag;
+  document.getElementById('cCode').textContent=lang.code;
+  // Profile stats labels
+  const ls=document.getElementById('lbl-streak');if(ls)ls.textContent=t.streak;
+  const la=document.getElementById('lbl-avgscore');if(la)la.textContent=t.avgScore;
+  const ld=document.getElementById('lbl-days');if(ld)ld.textContent=t.days;
+  const lt=document.getElementById('lbl-trend');if(lt)lt.textContent=t.trend;
+  const lc=document.getElementById('lbl-cogscore');if(lc)lc.textContent=t.cogScore;
+  const lav=document.getElementById('lbl-avg-wrap');if(lav){const b=lav.querySelector('b');lav.firstChild.textContent=t.avg+' ';if(b)lav.innerHTML=t.avg+' <b id="cAvg">'+( document.getElementById('cAvg')?document.getElementById('cAvg').textContent:'—')+'</b>';}
+  // Profile buttons
+  const bne=document.getElementById('btn-newentry');if(bne)bne.textContent=t.newEntry;
+  const bep=document.getElementById('btn-editprofile');if(bep)bep.textContent=t.editProfile;
+  const bsp=document.getElementById('btn-saveprofile');if(bsp)bsp.textContent=t.saveProfile;
+  // Edit form labels
+  const lyp=document.getElementById('lbl-yourprofile');if(lyp)lyp.textContent=t.yourProfile;
+  const ln=document.getElementById('lbl-name');if(ln)ln.textContent=t.name;
+  const lage=document.getElementById('lbl-age');if(lage)lage.textContent=t.age;
+  const lg=document.getElementById('lbl-goal');if(lg)lg.textContent=t.goal;
+  const lch=document.getElementById('lbl-chronotype');if(lch)lch.textContent=t.chronotype;
+  const leb=document.getElementById('lbl-earlybird');if(leb)leb.textContent=t.earlyBird;
+  const lno=document.getElementById('lbl-nightowl');if(lno)lno.textContent=t.nightOwl;
+  // Slider names & subs
+  const sls=[['sl-sleep-name',t.sleep],['sl-sleep-sub',t.sleepSub],['sl-focus-name',t.focus],['sl-focus-sub',t.focusSub],['sl-med-name',t.meditation],['sl-med-sub',t.meditationSub],['sl-dw-name',t.deepWork],['sl-dw-sub',t.deepWorkSub],['sl-stress-name',t.stress],['sl-stress-sub',t.stressSub]];
+  sls.forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.textContent=val;});
+  // Analyze button
+  const ban=document.getElementById('btn-analyze');if(ban)ban.textContent=t.analyze;
+  // Report
+  const sc=document.querySelector('.sc-lbl');if(sc)sc.textContent=t.compScore;
+  const tabs=document.querySelectorAll('.tab-btn');if(tabs[0])tabs[0].textContent=t.issues;if(tabs[1])tabs[1].textContent=t.plan;
+  // Nav
+  const navIds=[['nb-profile',t.navProfile],['nb-input',t.navInput],['nb-report',t.navReport],['nb-games',t.navGames],['nb-chat',t.navCoach]];
+  navIds.forEach(([id,val])=>{const el=document.getElementById(id);if(el){const svg=el.querySelector('svg');el.textContent=val;if(svg)el.prepend(svg);}});
+  // Chat
+  const cwSub=document.getElementById('cwSub');if(cwSub)cwSub.textContent=t.welcome;
+  const ci=document.getElementById('chatInp');if(ci)ci.placeholder=t.chatPlaceholder;
+  // Loader
+  const ltx=document.querySelector('.ltxt');if(ltx)ltx.textContent=t.analyzing;
+  // 3D banners
+  const ib=document.querySelector('.input-3d-lbl');if(ib)ib.textContent=t.dailyMetrics;
+  const gb=document.querySelector('.games-3d-lbl');if(gb)gb.textContent=t.brainTraining;
+  // Games grid
+  const gnames=document.querySelectorAll('.g-name');const gdescs=document.querySelectorAll('.g-desc');
+  const gdata=[[t.mathSprint,t.mathDesc],[t.memMatch,t.memDesc],[t.wordRecall,t.wordDesc],[t.reactTest,t.reactDesc]];
+  gnames.forEach((el,i)=>{if(gdata[i])el.textContent=gdata[i][0];});
+  gdescs.forEach((el,i)=>{if(gdata[i])el.textContent=gdata[i][1];});
+  // Back button & score label in game
+  const gbk=document.querySelector('.g-back');if(gbk)gbk.textContent=t.back;
+  const gsl=document.querySelector('.g-sc-l');if(gsl)gsl.textContent=t.score;
+  // Profile default text (only if no profile set)
+  if(!profile.name){const pn=document.getElementById('pName');if(pn)pn.textContent=t.setupProfile;const ps=document.getElementById('pSub');if(ps)ps.textContent=t.setupSub;}
+  renderSuggs();
+}
+
+function renderSuggs(){
+  const t=T[lang.code]||T['EN'];
+  document.getElementById('chatSugg').innerHTML=t.suggs.map(s=>`<button class="sugg" onclick="sendSugg(this)">${s}</button>`).join('');
+}
+
+// ── LANG MODAL ──
+function openLang(){
+  document.getElementById('langGrid').innerHTML=LANGS.map(l=>`
+    <div class="lang-item${l.code===lang.code?' sel':''}" data-code="${l.code}" onclick="setLangByCode('${l.code}')">
+      <span class="li-f">${l.flag}</span>
+      <div><div class="li-n">${l.name}</div><div class="li-nat">${l.nat}</div></div>
+    </div>`).join('');
+  document.getElementById('langModal').classList.add('show');
+}
+
+function setLangByCode(code){
+  const found=LANGS.find(l=>l.code===code);
+  if(!found)return;
+  lang={code:found.code,flag:found.flag,name:found.name};
+  S.set('cog_lang',lang);
+  applyLang();
+  document.querySelectorAll('.lang-item').forEach(el=>el.classList.toggle('sel',el.dataset.code===code));
+}
+
+function closeLang(){document.getElementById('langModal').classList.remove('show');applyLang();renderProfile();}
+
+// ── NAV ──
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  const scr=document.getElementById('screen-'+id);if(scr)scr.classList.add('active');
+  const btn=document.getElementById('nb-'+id);if(btn)btn.classList.add('on');
+  if(id==='profile')renderProfile();
+  if(id==='report')renderReport();
+}
+
+// ── PROFILE ──
+let chronSel=profile.chron||'';
+function renderProfile(){
+  const scores=entries.map(e=>e.score).filter(Boolean);
+  const avg=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):null;
+  const t=T[lang.code]||T['EN'];
+  document.getElementById('pAva').textContent=profile.name?profile.name[0].toUpperCase():'👤';
+  document.getElementById('pName').textContent=profile.name||t.setupProfile;
+  document.getElementById('pSub').textContent=profile.goal||t.setupSub;
+  document.getElementById('ps1').textContent=streak.count+'🔥';
+  document.getElementById('ps2').textContent=avg||'—';
+  document.getElementById('ps3').textContent=entries.length;
+  document.getElementById('sBadge').textContent=streak.count;
+  document.getElementById('cAvg').textContent=avg||'—';
+  const days=['S','M','T','W','T','F','S'];
+  const today=new Date();let bHtml='',dHtml='';
+  for(let i=6;i>=0;i--){
+    const d=new Date(today);d.setDate(today.getDate()-i);
+    const key=d.toISOString().split('T')[0];
+    const entry=entries.find(e=>e.date===key);
+    dHtml+=`<span style="font-size:8px;color:var(--muted)">${days[d.getDay()]}</span>`;
+    if(entry&&entry.score){const h=Math.round((entry.score/100)*70);bHtml+=`<div class="bw"><div class="bv">${entry.score}</div><div class="b" style="height:${h}px"></div></div>`;}
+    else bHtml+=`<div class="bw"><div class="bv e">—</div><div class="b e" style="height:6px"></div></div>`;
+  }
+  document.getElementById('cBars').innerHTML=bHtml;
+  document.getElementById('cDays').innerHTML=dHtml;
+}
+function showEdit(){document.getElementById('pView').style.display='none';document.getElementById('pEdit').style.display='block';document.getElementById('eN').value=profile.name||'';document.getElementById('eA').value=profile.age||'';document.getElementById('eG').value=profile.goal||'';chronSel=profile.chron||'';updateChronUI();}
+function updateChronUI(){document.getElementById('kEB').className='kopt'+(chronSel==='EB'?' sel':'');document.getElementById('kNO').className='kopt'+(chronSel==='NO'?' sel':'');}
+function selChron(v){chronSel=v;updateChronUI();}
+function saveProfile(){profile={name:document.getElementById('eN').value.trim(),age:document.getElementById('eA').value,goal:document.getElementById('eG').value.trim(),chron:chronSel};S.set('cog_profile',profile);document.getElementById('pView').style.display='block';document.getElementById('pEdit').style.display='none';renderProfile();}
+
+// ── INPUT ──
+function upd(id,val,suffix){const el=document.getElementById('v'+id);if(el)el.textContent=val+suffix;}
+function analyze(){
+  const sleep=parseFloat(document.getElementById('rSleep').value),focus=parseInt(document.getElementById('rFocus').value),med=parseInt(document.getElementById('rMed').value),dw=parseInt(document.getElementById('rDW').value),stress=parseInt(document.getElementById('rStress').value);
+  const sleepS=Math.round(((sleep-4)/6)*100),focusS=Math.round((focus/10)*100),medS=Math.round((med/60)*100),dwS=Math.round((dw/240)*100),stressS=Math.round(((10-stress)/9)*100);
+  const score=Math.round(sleepS*.25+focusS*.25+medS*.15+dwS*.2+stressS*.15);
+  const today=new Date().toISOString().split('T')[0];
+  const entry={date:today,sleep,focus,med,dw,stress,score,sleepS,focusS,medS,dwS,stressS};
+  const idx=entries.findIndex(e=>e.date===today);
+  if(idx>=0)entries[idx]=entry;else entries.push(entry);
+  if(entries.length>90)entries=entries.slice(-90);
+  S.set('cog_entries',entries);
+  const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+  const yKey=yesterday.toISOString().split('T')[0];
+  if(streak.last===yKey||streak.last===today){if(streak.last!==today){streak.count++;streak.last=today;}}else{streak.count=1;streak.last=today;}
+  S.set('cog_streak',streak);
+  showLoader();setTimeout(()=>{hideLoader();showScreen('report');},1400);
+}
+function showLoader(){document.getElementById('loader').classList.add('on');}
+function hideLoader(){document.getElementById('loader').classList.remove('on');}
+
+// ── REPORT ──
+function renderReport(){
+  const today=new Date().toISOString().split('T')[0];
+  const e=entries.find(x=>x.date===today);
+  if(!e){document.getElementById('scNum').textContent='--';document.getElementById('scBar').style.width='0%';document.getElementById('scGrade').textContent='—';document.getElementById('mets').innerHTML='';document.getElementById('tab-issues').innerHTML='<div style="padding:16px;font-size:11px;color:var(--muted)">No data for today. Submit a daily input first.</div>';document.getElementById('tab-plan').innerHTML='';return;}
+  document.getElementById('scNum').textContent=e.score;
+  document.getElementById('scBar').style.width=e.score+'%';
+  const grades=[[90,'PEAK STATE'],[75,'OPTIMAL'],[60,'MODERATE'],[45,'SUBOPTIMAL'],[0,'RECOVERY']];
+  document.getElementById('scGrade').textContent=(grades.find(g=>e.score>=g[0])||grades[4])[1];
+  document.getElementById('mets').innerHTML=[{l:'Sleep',v:e.sleep,u:'h',s:e.sleepS},{l:'Focus',v:e.focus,u:'/10',s:e.focusS},{l:'Meditation',v:e.med,u:'m',s:e.medS},{l:'Deep Work',v:e.dw,u:'m',s:e.dwS},{l:'Stress',v:e.stress,u:'/10',s:e.stressS}].map(m=>`<div class="met"><div class="met-l">${m.l}</div><div class="met-v">${m.v}<span>${m.u}</span></div><div class="met-bar"><div class="met-bar-f" style="width:${m.s}%"></div></div></div>`).join('');
+  const issues=[];
+  if(e.sleep<6)issues.push({n:'Sleep Deficit',sev:'high',d:`Only ${e.sleep}h sleep. Aim for 7-9h.`});
+  if(e.sleep>9)issues.push({n:'Oversleeping',sev:'moderate',d:`${e.sleep}h may indicate fatigue.`});
+  if(e.stress>7)issues.push({n:'High Stress',sev:'high',d:`Stress ${e.stress}/10 impairs memory and focus.`});
+  if(e.focus<5)issues.push({n:'Low Focus',sev:'moderate',d:`Focus ${e.focus}/10. Reduce distractions.`});
+  if(e.med===0)issues.push({n:'No Meditation',sev:'moderate',d:'5 min mindfulness improves cognitive flexibility.'});
+  if(e.dw<30)issues.push({n:'Minimal Deep Work',sev:'moderate',d:`Only ${e.dw}m deep work. Build focus blocks.`});
+  if(issues.length===0)issues.push({n:'No Issues Detected',sev:'low',d:'All metrics in optimal range. Keep it up!'});
+  document.getElementById('tab-issues').innerHTML=issues.map(i=>`<div class="bn ${i.sev==='high'?'high':''}"><div class="bn-h"><div class="bn-n">${i.n}</div><span class="bn-b ${i.sev}">${i.sev.toUpperCase()}</span></div><div class="bn-d">${i.d}</div></div>`).join('');
+  document.getElementById('tab-plan').innerHTML=`<div class="plan-c"><div class="plan-h"><span class="plan-p">TONIGHT</span><span class="plan-t">Sleep Optimization</span></div>${(e.sleep<7?['Set consistent sleep time','Avoid screens 1h before bed','Keep room cool (18-20°C)']:['Maintain sleep schedule','Track sleep consistency']).map(a=>`<div class="plan-a"><span class="plan-dot">▸</span>${a}</div>`).join('')}</div><div class="plan-c"><div class="plan-h"><span class="plan-p">TOMORROW</span><span class="plan-t">Cognitive Protocol</span></div>${[e.focus<7?'Start with 25-min Pomodoro blocks':'Extend deep work to 90 min',e.stress>5?'Begin with 10-min breathwork':'Morning review session','Cold exposure for alertness (optional)'].map(a=>`<div class="plan-a"><span class="plan-dot">▸</span>${a}</div>`).join('')}</div><div class="target"><div class="tgt-l">// Target for Tomorrow</div><div class="tgt-t">Aim for score <b>${Math.min(100,e.score+8)}</b>. Focus on <b>${e.sleepS<e.focusS?'sleep quality':'focus consistency'}</b>.</div></div>`;
+}
+function switchTab(id){document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['issues','plan'][i]===id));document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));const pane=document.getElementById('tab-'+id);if(pane)pane.classList.add('active');}
+
+// ── GAMES ──
+let gScore=0,gTimer=null,gCurrentGame='',gRound=0,memCards=[],memFlipped=[],memMatched=[],memLock=false,reactState='idle',reactTimeout=null,reactStart=0,wordList=[];
+function startGame(type){gCurrentGame=type;gScore=0;gRound=0;document.getElementById('gameGrid').style.display='none';document.getElementById('gPlay').classList.add('on');document.getElementById('gScV').textContent='0';nextRound();}
+function backGames(){clearTimeout(gTimer);clearTimeout(reactTimeout);document.getElementById('gameGrid').style.display='grid';document.getElementById('gPlay').classList.remove('on');document.getElementById('gBox').innerHTML='';}
+function nextRound(){gRound++;if(gRound>10&&gCurrentGame!=='memory'&&gCurrentGame!=='react'){endGame();return;}if(gCurrentGame==='math')renderMath();else if(gCurrentGame==='memory')renderMemory();else if(gCurrentGame==='word')renderWord();else if(gCurrentGame==='react')renderReact();}
+function startTimer(sec){const bar=document.getElementById('gTimer');bar.style.transition='none';bar.style.width='100%';requestAnimationFrame(()=>{bar.style.transition=`width ${sec}s linear`;bar.style.width='0%';});}
+function renderMath(){const ops=['+','-','×'];const op=ops[Math.floor(Math.random()*3)];let a,b,ans;if(op==='+'){a=Math.floor(Math.random()*50)+1;b=Math.floor(Math.random()*50)+1;ans=a+b;}else if(op==='-'){a=Math.floor(Math.random()*50)+10;b=Math.floor(Math.random()*a)+1;ans=a-b;}else{a=Math.floor(Math.random()*12)+1;b=Math.floor(Math.random()*12)+1;ans=a*b;}const opts=[ans];while(opts.length<4){const r=ans+Math.floor(Math.random()*20)-10;if(r!==ans&&r>0&&!opts.includes(r))opts.push(r);}opts.sort(()=>Math.random()-.5);document.getElementById('gBox').innerHTML=`<div class="gq">${a} ${op} ${b} = ?</div><div class="gopts">${opts.map(o=>`<button class="gopt" onclick="checkMath(this,${o},${ans})">${o}</button>`).join('')}</div>`;startTimer(8);clearTimeout(gTimer);gTimer=setTimeout(()=>{document.querySelectorAll('.gopt').forEach(b=>{b.classList.add('no');b.onclick=null;});setTimeout(nextRound,800);},8000);}
+function checkMath(btn,val,ans){clearTimeout(gTimer);document.querySelectorAll('.gopt').forEach(b=>b.onclick=null);btn.classList.add(val===ans?'ok':'no');if(val===ans){gScore+=10;document.getElementById('gScV').textContent=gScore;}setTimeout(nextRound,600);}
+function renderMemory(){const emojis=['🧠','⚡','🎯','💡','🔬','🌊','🎲','🦋'];const pairs=[...emojis,...emojis].sort(()=>Math.random()-.5);memCards=[...pairs];memFlipped=[];memMatched=[];memLock=false;document.getElementById('gBox').innerHTML=`<div class="mem-grid">${pairs.map((_,i)=>`<div class="mcard" id="mc${i}" onclick="flipCard(${i})">?</div>`).join('')}</div>`;startTimer(60);clearTimeout(gTimer);gTimer=setTimeout(()=>{if(memMatched.length<16)endGame();},60000);}
+function flipCard(i){if(memLock||memFlipped.includes(i)||memMatched.includes(i))return;const el=document.getElementById('mc'+i);el.textContent=memCards[i];el.classList.add('fl');memFlipped.push(i);if(memFlipped.length===2){memLock=true;const[a,b]=memFlipped;if(memCards[a]===memCards[b]){memMatched.push(a,b);document.getElementById('mc'+a).classList.add('mt');document.getElementById('mc'+b).classList.add('mt');gScore+=20;document.getElementById('gScV').textContent=gScore;memFlipped=[];memLock=false;if(memMatched.length===16){clearTimeout(gTimer);endGame();}}else{setTimeout(()=>{document.getElementById('mc'+a).textContent='?';document.getElementById('mc'+a).classList.remove('fl');document.getElementById('mc'+b).textContent='?';document.getElementById('mc'+b).classList.remove('fl');memFlipped=[];memLock=false;},900);}}}
+const wordPool=['FOCUS','SLEEP','BRAIN','LEARN','THINK','ADAPT','GROW','SHARP','SWIFT','CALM'];
+function renderWord(){wordList=[];const count=Math.min(3+Math.floor(gRound/3),7);while(wordList.length<count){const w=wordPool[Math.floor(Math.random()*wordPool.length)];if(!wordList.includes(w))wordList.push(w);}document.getElementById('gBox').innerHTML=`<div class="wi-h">Memorize these words:</div><div class="wi-d">${wordList.join(' · ')}</div>`;startTimer(4);clearTimeout(gTimer);gTimer=setTimeout(()=>{document.getElementById('gBox').innerHTML=`<div class="wi-h">Type the words you remember (space separated):</div><input class="wi-i" id="wiInp" placeholder="WORD1 WORD2..."><button class="wi-s" onclick="checkWords()">SUBMIT</button>`;},4000);}
+function checkWords(){clearTimeout(gTimer);const inp=document.getElementById('wiInp');if(!inp)return;const typed=inp.value.trim().toUpperCase().split(/\s+/);const correct=typed.filter(w=>wordList.includes(w)).length;gScore+=correct*15;document.getElementById('gScV').textContent=gScore;document.getElementById('gBox').innerHTML=`<div class="gres"><div class="gres-l">Correct</div><div class="gres-sc">${correct}/${wordList.length}</div><button class="play-again" onclick="nextRound()">NEXT</button></div>`;if(gRound>=5)setTimeout(endGame,800);}
+function renderReact(){reactState='wait';clearTimeout(reactTimeout);const area=document.createElement('div');area.className='react-area wait';area.innerHTML='<div class="react-txt">WAIT...</div>';area.onclick=()=>{if(reactState==='wait'){area.innerHTML='<div class="react-txt" style="color:var(--danger)">TOO EARLY!</div>';clearTimeout(reactTimeout);setTimeout(()=>renderReact(),1000);}else if(reactState==='go'){clearTimeout(reactTimeout);const rt=Date.now()-reactStart;reactState='done';gScore+=Math.max(0,Math.round(500-rt/2));document.getElementById('gScV').textContent=gScore;area.innerHTML=`<div class="react-txt" style="color:var(--accent)">${rt}ms</div>`;if(gRound<10)setTimeout(()=>{gRound++;renderReact();},1000);else setTimeout(endGame,800);}};document.getElementById('gBox').innerHTML='';document.getElementById('gBox').appendChild(area);const delay=1500+Math.random()*3000;reactTimeout=setTimeout(()=>{reactState='go';reactStart=Date.now();area.className='react-area go';area.innerHTML='<div class="react-txt">TAP NOW!</div>';reactTimeout=setTimeout(()=>{if(reactState==='go'){reactState='miss';area.innerHTML='<div class="react-txt" style="color:var(--danger)">TOO SLOW</div>';setTimeout(()=>{gRound++;renderReact();},1000);}},2000);},delay);startTimer(5);}
+function endGame(){clearTimeout(gTimer);document.getElementById('gBox').innerHTML=`<div class="gres"><div class="gres-l">Final Score</div><div class="gres-sc">${gScore}</div><button class="play-again" onclick="backGames()">DONE</button></div>`;}
+
+// ── CHAT ──
+const API_URL='https://api.anthropic.com/v1/messages';
+let chatHistory=[];
+function sendSugg(btn){document.getElementById('chatInp').value=btn.textContent;sendMsg();}
+function ts(){return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+function addMsg(role,text){const div=document.createElement('div');div.className='msg '+role;div.innerHTML=`<div class="msg-bbl">${text.replace(/\n/g,'<br>')}</div><div class="msg-t">${ts()}</div>`;const msgs=document.getElementById('chatMsgs');msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;}
+function showTyping(){const div=document.createElement('div');div.className='typing-wrap';div.id='typing';div.innerHTML='<div class="typing"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>';const msgs=document.getElementById('chatMsgs');msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;}
+function hideTyping(){const t=document.getElementById('typing');if(t)t.remove();}
+async function sendMsg(){
+  const inp=document.getElementById('chatInp');const text=inp.value.trim();if(!text)return;
+  inp.value='';addMsg('u',text);chatHistory.push({role:'user',content:text});showTyping();
+  const today=new Date().toISOString().split('T')[0];const todayE=entries.find(e=>e.date===today);
+  const scores=entries.map(e=>e.score).filter(Boolean);const avg=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):null;
+  const sys=`You are COGNITIV AI, a personal cognitive performance coach. CRITICAL RULE: Detect the language of the user's message and respond ENTIRELY in that same language. If the user writes in Arabic, respond in Arabic. Turkish → Turkish. Chinese → Chinese. Never mix languages. Be concise, scientific, motivating. Under 150 words unless asked for more.
+Profile: Name=${profile.name||'Unknown'}, Age=${profile.age||'?'}, Goal=${profile.goal||'?'}, Chronotype=${profile.chron||'?'}.
+Today: ${todayE?`Score=${todayE.score}, Sleep=${todayE.sleep}h, Focus=${todayE.focus}/10, Meditation=${todayE.med}m, DeepWork=${todayE.dw}m, Stress=${todayE.stress}/10`:'No data today'}.
+Avg score: ${avg||'No history'}, Entries: ${entries.length}, Streak: ${streak.count} days.`;
+  try{
+    const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,system:sys,messages:chatHistory})});
+    const data=await res.json();hideTyping();
+    const reply=data.content?.[0]?.text||'Sorry, could not process.';
+    chatHistory.push({role:'assistant',content:reply});if(chatHistory.length>20)chatHistory=chatHistory.slice(-20);addMsg('a',reply);
+  }catch(e){hideTyping();addMsg('a','Connection error. Please try again.');}
+}
+document.getElementById('chatInp').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
+
+// ── INIT ──
+applyLang();
+renderProfile();
+
+// ═══════════════════ 3D VISUALS ═══════════════════════
+
+// 1. PROFILE HERO — Particle Network
+(function(){
+  const cvs=document.getElementById('profileBg');if(!cvs)return;
+  const ctx=cvs.getContext('2d');let W,H,pts=[];
+  function resize(){W=cvs.width=cvs.parentElement.offsetWidth;H=cvs.height=cvs.parentElement.offsetHeight;}
+  resize();window.addEventListener('resize',resize);
+  for(let i=0;i<65;i++)pts.push({x:Math.random()*100,y:Math.random()*100,vx:(Math.random()-.5)*.22,vy:(Math.random()-.5)*.22,r:Math.random()*1.4+.4,a:Math.random()*.35+.1,hue:Math.random()>0.5?0:200});
+  (function loop(){
+    ctx.clearRect(0,0,W,H);
+    pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>100)p.vx*=-1;if(p.y<0||p.y>100)p.vy*=-1;});
+    for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
+      const dx=(pts[i].x-pts[j].x)/100*W,dy=(pts[i].y-pts[j].y)/100*H,d=Math.sqrt(dx*dx+dy*dy);
+      if(d<85){const g=ctx.createLinearGradient(pts[i].x/100*W,pts[i].y/100*H,pts[j].x/100*W,pts[j].y/100*H);g.addColorStop(0,'rgba(0,245,160,'+(1-d/85)*.09+')');g.addColorStop(1,'rgba(153,69,255,'+(1-d/85)*.09+')');ctx.beginPath();ctx.strokeStyle=g;ctx.lineWidth=.65;ctx.moveTo(pts[i].x/100*W,pts[i].y/100*H);ctx.lineTo(pts[j].x/100*W,pts[j].y/100*H);ctx.stroke();}
+    }
+    pts.forEach(p=>{ctx.beginPath();ctx.arc(p.x/100*W,p.y/100*H,p.r,0,Math.PI*2);ctx.fillStyle=p.hue===0?`rgba(0,245,160,${p.a})`:`rgba(0,184,255,${p.a})`;ctx.shadowColor=p.hue===0?'#00f5a0':'#00b8ff';ctx.shadowBlur=5;ctx.fill();ctx.shadowBlur=0;});
+    requestAnimationFrame(loop);
+  })();
+})();
+
+// 2. SCORE — EEG Wave
+(function(){
+  const cvs=document.getElementById('scoreWaveBg');if(!cvs)return;
+  const ctx=cvs.getContext('2d');let W,H,t=0;
+  function resize(){W=cvs.width=cvs.parentElement.offsetWidth;H=cvs.height=cvs.parentElement.offsetHeight;}
+  resize();window.addEventListener('resize',resize);
+  const waves=[{c1:'#00f5a0',c2:'#00b8ff',a:.25,f:.03,s:.015,o:-12,lw:2},{c1:'#9945ff',c2:'#00b8ff',a:.16,f:.056,s:.023,o:12,lw:1.3},{c1:'#ff4d6d',c2:'#9945ff',a:.09,f:.09,s:.036,o:24,lw:.9}];
+  (function loop(){
+    ctx.clearRect(0,0,W,H);
+    waves.forEach(w=>{ctx.beginPath();const g=ctx.createLinearGradient(0,0,W,0);g.addColorStop(0,w.c1+'00');g.addColorStop(.5,w.c2+'99');g.addColorStop(1,w.c1+'00');ctx.strokeStyle=g;ctx.globalAlpha=w.a;ctx.lineWidth=w.lw;ctx.shadowColor=w.c1;ctx.shadowBlur=8;for(let x=0;x<=W;x+=2){const y=H/2-w.o+28*Math.sin(x*w.f+t*w.s*60)+11*Math.sin(x*w.f*2.3+t*w.s*88)+5*Math.sin(x*w.f*.48+t*w.s*32);x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.stroke();ctx.globalAlpha=1;ctx.shadowBlur=0;});
+    t++;requestAnimationFrame(loop);
+  })();
+})();
+
+// 3. INPUT — Dynamic Slider Waves
+(function(){
+  const cvs=document.getElementById('inputWaveCvs');if(!cvs)return;
+  const ctx=cvs.getContext('2d');let t=0;
+  function resize(){cvs.width=cvs.offsetWidth;cvs.height=cvs.offsetHeight;}
+  resize();window.addEventListener('resize',resize);
+  (function loop(){
+    const W=cvs.width,H=cvs.height;
+    const sleep=Math.min(1,(parseFloat(document.getElementById('rSleep')?.value||7.5)-4)/6);
+    const focus=(parseInt(document.getElementById('rFocus')?.value||7))/10;
+    const stress=1-(parseInt(document.getElementById('rStress')?.value||4))/10;
+    ctx.clearRect(0,0,W,H);
+    [{c1:'#00f5a0',c2:'#00b8ff',a:sleep,f:.04,s:.022,o:-7},{c1:'#00b8ff',c2:'#9945ff',a:focus,f:.07,s:.033,o:7},{c1:'#f5c542',c2:'#ff4d6d',a:stress,f:.055,s:.027,o:0}].forEach(w=>{
+      ctx.beginPath();const g=ctx.createLinearGradient(0,0,W,0);g.addColorStop(0,w.c1+'00');g.addColorStop(.5,w.c1+'cc');g.addColorStop(1,w.c2+'00');ctx.strokeStyle=g;ctx.globalAlpha=.12+w.a*.6;ctx.lineWidth=1.6;ctx.shadowColor=w.c1;ctx.shadowBlur=6;
+      for(let x=0;x<=W;x+=2){const y=H/2+w.o+21*w.a*Math.sin(x*w.f+t*w.s*60)+8*Math.sin(x*w.f*2.1+t*w.s*80);x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+      ctx.stroke();ctx.globalAlpha=1;ctx.shadowBlur=0;
+    });
+    t++;requestAnimationFrame(loop);
+  })();
+})();
+
+// 4. GAMES — Neural Nodes
+(function(){
+  const cvs=document.getElementById('gamesCvs');if(!cvs)return;
+  const ctx=cvs.getContext('2d');let W,H,nodes=[],t=0;
+  const COLS=['#00f5a0','#9945ff','#00b8ff','#ff4d6d','#f5c542'];
+  function resize(){W=cvs.width=cvs.offsetWidth;H=cvs.height=cvs.offsetHeight;nodes=[];for(let i=0;i<30;i++)nodes.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.5,vy:(Math.random()-.5)*.5,r:Math.random()*2+.8,c:COLS[Math.floor(Math.random()*COLS.length)],phase:Math.random()*Math.PI*2});}
+  resize();window.addEventListener('resize',resize);
+  (function loop(){
+    ctx.clearRect(0,0,W,H);
+    nodes.forEach(n=>{n.x+=n.vx;n.y+=n.vy;if(n.x<0||n.x>W)n.vx*=-1;if(n.y<0||n.y>H)n.vy*=-1;});
+    for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){const dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<70){ctx.beginPath();ctx.strokeStyle=`rgba(0,245,160,${(1-d/70)*.13})`;ctx.lineWidth=.7;ctx.moveTo(nodes[i].x,nodes[i].y);ctx.lineTo(nodes[j].x,nodes[j].y);ctx.stroke();}}
+    nodes.forEach(n=>{const pulse=.5+.5*Math.sin(t*.037+n.phase);ctx.beginPath();ctx.arc(n.x,n.y,n.r*(0.65+pulse*.5),0,Math.PI*2);ctx.fillStyle=n.c;ctx.globalAlpha=.32+pulse*.58;ctx.shadowColor=n.c;ctx.shadowBlur=7;ctx.fill();ctx.globalAlpha=1;ctx.shadowBlur=0;});
+    t++;requestAnimationFrame(loop);
+  })();
+})();
+</script>
+</body>
+</html>
