@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>COGNITIV — Performance OS</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080a0f; --surface:#0e1118; --border:#1e2330;
+    --accent:#00f5a0; --accent2:#00b8ff; --warn:#f5c542;
+    --danger:#ff4d6d; --text:#e8eaf0; --muted:#5a6070; --card:#111520;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,245,160,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,160,.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+  .app{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:0 0 80px}
+
+  .header{padding:28px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;letter-spacing:4px;color:var(--accent);text-transform:uppercase}
+  .logo span{color:var(--muted)}
+  .lang-btn{font-size:11px;background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 12px;cursor:pointer;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:6px}
+
+  .lang-modal{display:none;position:fixed;inset:0;z-index:500;background:rgba(8,10,15,.97);backdrop-filter:blur(10px);overflow-y:auto}
+  .lang-modal.show{display:block}
+  .lang-modal-inner{max-width:480px;margin:0 auto;padding:24px 16px 100px}
+  .lang-modal-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--accent);letter-spacing:3px;text-transform:uppercase;padding:16px 0 24px}
+  .lang-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .lang-item{background:var(--card);border:1px solid var(--border);padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color .2s}
+  .lang-item.active,.lang-item:active{border-color:var(--accent)}
+  .lang-item-flag{font-size:22px}
+  .lang-item-name{font-family:'Syne',sans-serif;font-size:12px;font-weight:700}
+  .lang-item-native{font-size:10px;color:var(--muted)}
+  .lang-close{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--bg);border:none;padding:14px 48px;font-family:'Syne',sans-serif;font-size:12px;font-weight:800;letter-spacing:3px;cursor:pointer;z-index:501}
+
+  .screen{display:none;animation:fadeIn .3s ease}
+  .screen.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+  .section-label{font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;padding:24px 20px 12px}
+  .input-card{margin:0 16px 10px;background:var(--card);border:1px solid var(--border);padding:18px 20px;position:relative}
+  .input-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent);opacity:.3}
+  .input-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .input-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;margin-bottom:2px}
+  .input-sub{font-size:10px;color:var(--muted)}
+  .input-value-display{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent);min-width:60px;text-align:right}
+  input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:var(--border);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--accent);cursor:pointer;border:2px solid var(--bg);box-shadow:0 0 12px rgba(0,245,160,.5)}
+  .slider-labels{display:flex;justify-content:space-between;margin-top:6px;font-size:9px;color:var(--muted)}
+  .analyze-btn{margin:20px 16px 0;width:calc(100% - 32px);background:var(--accent);color:var(--bg);border:none;padding:16px;font-family:'Syne',sans-serif;font-size:13px;font-weight:800;letter-spacing:4px;text-transform:uppercase;cursor:pointer;transition:transform .1s}
+  .analyze-btn:active{transform:scale(.98)}
+
+  .score-hero{margin:20px 16px;background:var(--card);border:1px solid var(--border);padding:28px 24px;text-align:center;position:relative;overflow:hidden}
+  .score-hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+  .score-label{font-size:9px;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-bottom:12px}
+  .score-number{font-family:'Syne',sans-serif;font-size:80px;font-weight:800;line-height:1;color:var(--accent);text-shadow:0 0 40px rgba(0,245,160,.3);margin-bottom:8px}
+  .score-bar-wrap{height:4px;background:var(--border);margin:16px 0 8px}
+  .score-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width 1s cubic-bezier(.16,1,.3,1)}
+  .score-grade{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+  .metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 16px}
+  .metric-card{background:var(--card);border:1px solid var(--border);padding:14px 16px}
+  .metric-label{font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+  .metric-val{font-family:'Syne',sans-serif;font-size:24px;font-weight:800}
+  .metric-val span{font-size:12px;color:var(--muted);font-weight:400}
+  .metric-bar{height:2px;background:var(--border);margin-top:10px}
+  .metric-bar-fill{height:100%;background:var(--accent);transition:width 1s ease}
+
+  .tabs{display:flex;margin:20px 16px 0;border-bottom:1px solid var(--border)}
+  .tab-btn{flex:1;background:none;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:12px 8px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s}
+  .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .tab-pane{display:none;padding-top:12px}
+  .tab-pane.active{display:block}
+  .bn-card{margin:0 16px 8px;background:var(--card);border:1px solid var(--border);padding:16px 18px;border-left:3px solid var(--warn)}
+  .bn-card.high{border-left-color:var(--danger)}
+  .bn-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .bn-icon{font-size:16px}
+  .bn-name{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;flex:1}
+  .bn-badge{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;padding:3px 7px}
+  .bn-badge.high{background:rgba(255,77,109,.1);color:var(--danger);border:1px solid rgba(255,77,109,.2)}
+  .bn-badge.moderate{background:rgba(245,197,66,.1);color:var(--warn);border:1px solid rgba(245,197,66,.2)}
+  .bn-detail{font-size:11px;color:var(--muted);line-height:1.6}
+  .plan-card{margin:0 16px 8px;background:var(--card);border:1px solid var(--border);padding:18px 20px}
+  .plan-header{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+  .plan-phase{font-size:9px;letter-spacing:2px;color:var(--accent2);text-transform:uppercase;border:1px solid rgba(0,184,255,.2);padding:3px 8px}
+  .plan-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700}
+  .plan-action{display:flex;gap:10px;margin-bottom:8px;font-size:11px;color:var(--muted);line-height:1.6}
+  .plan-bullet{color:var(--accent);flex-shrink:0}
+  .target-box{margin:8px 16px 0;background:rgba(0,245,160,.04);border:1px solid rgba(0,245,160,.15);padding:16px 18px}
+  .target-label{font-size:8px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;margin-bottom:8px}
+  .target-text{font-size:11px;color:var(--muted);line-height:1.7}
+  .target-text strong{color:var(--accent)}
+
+  /* CHAT */
+  .chat-container{display:flex;flex-direction:column;height:calc(100vh - 140px)}
+  .chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .chat-messages::-webkit-scrollbar{width:2px}
+  .chat-messages::-webkit-scrollbar-thumb{background:var(--border)}
+  .msg{max-width:85%;animation:msgIn .3s ease}
+  @keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  .msg.user{align-self:flex-end}
+  .msg.ai{align-self:flex-start}
+  .msg-bubble{padding:12px 16px;font-size:13px;line-height:1.6}
+  .msg.user .msg-bubble{background:var(--accent);color:var(--bg);font-family:'Syne',sans-serif;font-weight:600}
+  .msg.ai .msg-bubble{background:var(--card);border:1px solid var(--border);color:var(--text);border-left:2px solid var(--accent)}
+  .msg-time{font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:4px;padding:0 4px}
+  .msg.user .msg-time{text-align:right}
+  .chat-input-wrap{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;background:rgba(8,10,15,.9);backdrop-filter:blur(10px)}
+  .chat-input{flex:1;background:var(--card);border:1px solid var(--border);color:var(--text);padding:12px 16px;font-family:'DM Mono',monospace;font-size:12px;outline:none;resize:none;height:44px}
+  .chat-input:focus{border-color:var(--accent)}
+  .chat-send{background:var(--accent);color:var(--bg);border:none;padding:12px 16px;cursor:pointer;font-size:16px;flex-shrink:0}
+  .typing-indicator{display:flex;gap:4px;align-items:center;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-left:2px solid var(--accent);width:fit-content}
+  .typing-dot{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:dot 1.2s infinite}
+  .typing-dot:nth-child(2){animation-delay:.2s}
+  .typing-dot:nth-child(3){animation-delay:.4s}
+  @keyframes dot{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+  .chat-suggestions{padding:8px 16px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+  .chat-suggestions::-webkit-scrollbar{display:none}
+  .suggestion-chip{background:var(--card);border:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;padding:6px 12px;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s}
+  .suggestion-chip:active{border-color:var(--accent);color:var(--accent)}
+  .chat-welcome{text-align:center;padding:32px 20px}
+  .chat-welcome-icon{font-size:48px;margin-bottom:16px}
+  .chat-welcome-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--accent);letter-spacing:2px;margin-bottom:8px}
+  .chat-welcome-sub{font-size:11px;color:var(--muted);line-height:1.7}
+
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(8,10,15,.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;max-width:480px;margin:0 auto}
+  .nav-btn{flex:1;background:none;border:none;color:var(--muted);padding:12px 8px 18px;cursor:pointer;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;transition:color .2s;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .nav-btn.active{color:var(--accent)}
+  .nav-btn svg{width:18px;height:18px}
+
+  .loading-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:20px}
+  .loading-screen.show{display:flex}
+  .loader-ring{width:60px;height:60px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loader-text{font-size:10px;letter-spacing:4px;color:var(--muted);text-transform:uppercase;animation:pulse 1.5s ease infinite}
+  @keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+  .footer{text-align:center;padding:24px 20px 8px;font-size:9px;letter-spacing:2px;color:var(--muted);opacity:.4}
+</style>
+</head>
+<body>
+
+<div class="loading-screen" id="loader">
+  <div class="loader-ring"></div>
+  <div class="loader-text" id="loaderText">Analyzing</div>
+</div>
+
+<div class="lang-modal" id="langModal">
+  <div class="lang-modal-inner">
+    <div class="lang-modal-title">// Select Language</div>
+    <div class="lang-grid" id="langGrid"></div>
+  </div>
+  <button class="lang-close" onclick="closeLang()">✕ CLOSE</button>
+</div>
+
+<div class="app">
+  <div class="header">
+    <div class="logo">COGNITIV<span>.</span></div>
+    <button class="lang-btn" onclick="openLang()">
+      <span id="curFlag">🌐</span>
+      <span id="curCode">EN</span>
+    </button>
+  </div>
+
+  <!-- INPUT -->
+  <div class="screen active" id="screen-input">
+    <div class="section-label" id="lbl-daily">// Daily Input</div>
+    <div class="input-card">
+      <div class="input-row">
+        <div><div class="input-name" id="lbl-sleep">Sleep</div><div class="input-sub" id="lbl-sleep-sub">Hours last night</div></div>
+        <div class="input-value-display" id="val-sleep">7.5h</div>
+      </div>
+      <input type="range" id="sl-sleep" min="4" max="10" step="0.5" value="7.5" oninput="document.getElementById('val-sleep').textContent=this.value+'h'">
+      <div class="slider-labels"><span>4h</span><span>10h</span></div>
+    </div>
+    <div class="input-card">
+      <div class="input-row">
+        <div><div class="input-name" id="lbl-focus">Focus</div><div class="input-sub" id="lbl-focus-sub">Self-rated score</div></div>
+        <div class="input-value-display" id="val-focus">7/10</div>
+      </div>
+      <input type="range" id="sl-focus" min="1" max="10" step="1" value="7" oninput="document.getElementById('val-focus').textContent=this.value+'/10'">
+      <div class="slider-labels"><span>1</span><span>10</span></div>
+    </div>
+    <div class="input-card">
+      <div class="input-row">
+        <div><div class="input-name" id="lbl-med">Meditation</div><div class="input-sub" id="lbl-med-sub">Minutes today</div></div>
+        <div class="input-value-display" id="val-med">20m</div>
+      </div>
+      <input type="range" id="sl-med" min="0" max="60" step="5" value="20" oninput="document.getElementById('val-med').textContent=this.value+'m'">
+      <div class="slider-labels"><span>0m</span><span>60m</span></div>
+    </div>
+    <div class="input-card">
+      <div class="input-row">
+        <div><div class="input-name" id="lbl-dw">Deep Work</div><div class="input-sub" id="lbl-dw-sub">Focused minutes</div></div>
+        <div class="input-value-display" id="val-dw">90m</div>
+      </div>
+      <input type="range" id="sl-dw" min="0" max="240" step="10" value="90" oninput="document.getElementById('val-dw').textContent=this.value+'m'">
+      <div class="slider-labels"><span>0m</span><span>240m</span></div>
+    </div>
+    <div class="input-card">
+      <div class="input-row">
+        <div><div class="input-name" id="lbl-stress">Stress</div><div class="input-sub" id="lbl-stress-sub">Current level</div></div>
+        <div class="input-value-display" id="val-stress">4/10</div>
+      </div>
+      <input type="range" id="sl-stress" min="1" max="10" step="1" value="4" oninput="document.getElementById('val-stress').textContent=this.value+'/10'">
+      <div class="slider-labels"><span>1</span><span>10</span></div>
+    </div>
+    <button class="analyze-btn" id="btn-analyze" onclick="runAnalysis()">▶ Analyze Performance</button>
+    <div class="footer">COGNITIV SYSTEMS ██ v2.0</div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="screen" id="screen-result">
+    <div class="section-label" id="lbl-report">// Cognitive Report</div>
+    <div class="score-hero">
+      <div class="score-label" id="lbl-score">Composite Score</div>
+      <div class="score-number" id="score-display">--</div>
+      <div class="score-bar-wrap"><div class="score-bar-fill" id="score-bar" style="width:0%"></div></div>
+      <div class="score-grade" id="score-grade">—</div>
+    </div>
+    <div class="metrics-grid" id="metrics-grid"></div>
+    <div style="margin-top:8px">
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-btn-issues" onclick="switchTab('bottlenecks',this)">Issues</button>
+        <button class="tab-btn" id="tab-btn-plan" onclick="switchTab('plan',this)">Plan</button>
+      </div>
+      <div class="tab-pane active" id="tab-bottlenecks"></div>
+      <div class="tab-pane" id="tab-plan"></div>
+    </div>
+    <div class="footer">COGNITIV SYSTEMS ██ DO NOT DISTRIBUTE</div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="screen" id="screen-chat">
+    <div class="chat-container">
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-welcome">
+          <div class="chat-welcome-icon">🧠</div>
+          <div class="chat-welcome-title" id="lbl-chat-title">COGNITIV AI</div>
+          <div class="chat-welcome-sub" id="lbl-chat-sub">Your personal performance coach. Ask me anything about sleep, focus, stress, productivity, and neuroscience-backed habits.</div>
+        </div>
+      </div>
+      <div class="chat-suggestions" id="chatSuggestions"></div>
+      <div class="chat-input-wrap">
+        <textarea class="chat-input" id="chatInput" placeholder="Ask your coach..." rows="1" onkeydown="handleKey(event)"></textarea>
+        <button class="chat-send" onclick="sendMsg()">▶</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-input" onclick="showScreen('input')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="1"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="16" x2="12" y2="16"/></svg>
+    <span id="nav-lbl-input">Input</span>
+  </button>
+  <button class="nav-btn" id="nav-result" onclick="showScreen('result')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <span id="nav-lbl-report">Report</span>
+  </button>
+  <button class="nav-btn" id="nav-chat" onclick="showScreen('chat')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <span id="nav-lbl-coach">Coach</span>
+  </button>
+</nav>
+
+<script>
+const LANGS = [
+  {code:'en',name:'English',native:'English',flag:'🇬🇧'},
+  {code:'tr',name:'Turkish',native:'Türkçe',flag:'🇹🇷'},
+  {code:'es',name:'Spanish',native:'Español',flag:'🇪🇸'},
+  {code:'fr',name:'French',native:'Français',flag:'🇫🇷'},
+  {code:'de',name:'German',native:'Deutsch',flag:'🇩🇪'},
+  {code:'ar',name:'Arabic',native:'العربية',flag:'🇸🇦'},
+  {code:'zh',name:'Chinese',native:'中文',flag:'🇨🇳'},
+  {code:'hi',name:'Hindi',native:'हिन्दी',flag:'🇮🇳'},
+  {code:'pt',name:'Portuguese',native:'Português',flag:'🇧🇷'},
+  {code:'ru',name:'Russian',native:'Русский',flag:'🇷🇺'},
+  {code:'ja',name:'Japanese',native:'日本語',flag:'🇯🇵'},
+  {code:'ko',name:'Korean',native:'한국어',flag:'🇰🇷'},
+  {code:'it',name:'Italian',native:'Italiano',flag:'🇮🇹'},
+  {code:'nl',name:'Dutch',native:'Nederlands',flag:'🇳🇱'},
+  {code:'pl',name:'Polish',native:'Polski',flag:'🇵🇱'},
+  {code:'id',name:'Indonesian',native:'Bahasa',flag:'🇮🇩'},
+  {code:'vi',name:'Vietnamese',native:'Tiếng Việt',flag:'🇻🇳'},
+  {code:'th',name:'Thai',native:'ภาษาไทย',flag:'🇹🇭'},
+  {code:'fa',name:'Persian',native:'فارسی',flag:'🇮🇷'},
+  {code:'sw',name:'Swahili',native:'Kiswahili',flag:'🇰🇪'},
+];
+
+const T = {
+  en:{daily:'// Daily Input',sleep:'Sleep',sleep_s:'Hours last night',focus:'Focus',focus_s:'Self-rated score',med:'Meditation',med_s:'Minutes today',dw:'Deep Work',dw_s:'Focused minutes',stress:'Stress',stress_s:'Current level',btn:'▶ Analyze Performance',report:'// Cognitive Report',score:'Composite Score',issues:'Issues',plan:'Plan',inp:'Input',rep:'Report',coach:'Coach',ct:'COGNITIV AI',cw:"Your personal performance coach. Ask anything about sleep, focus, stress and neuroscience-backed habits.",ph:'Ask your coach...',sugg:['Better sleep?','Reduce stress','Boost focus','Morning routine']},
+  tr:{daily:'// Günlük Giriş',sleep:'Uyku',sleep_s:'Dün gece kaç saat',focus:'Odak',focus_s:'Kendi değerlendirmen',med:'Meditasyon',med_s:'Bugün kaç dakika',dw:'Derin Çalışma',dw_s:'Odaklı dakikalar',stress:'Stres',stress_s:'Mevcut seviye',btn:'▶ Performansı Analiz Et',report:'// Bilişsel Rapor',score:'Kompozit Skor',issues:'Sorunlar',plan:'Plan',inp:'Giriş',rep:'Rapor',coach:'Koç',ct:'COGNITIV AI',cw:'Kişisel performans koçun. Uyku, odak, stres ve bilimsel alışkanlıklar hakkında her şeyi sorabilirsin.',ph:'Koçuna sor...',sugg:['Daha iyi uyku?','Stresi azalt','Odağı artır','Sabah rutini']},
+  es:{daily:'// Entrada Diaria',sleep:'Sueño',sleep_s:'Horas anoche',focus:'Enfoque',focus_s:'Puntuación propia',med:'Meditación',med_s:'Minutos hoy',dw:'Trabajo Profundo',dw_s:'Minutos enfocados',stress:'Estrés',stress_s:'Nivel actual',btn:'▶ Analizar Rendimiento',report:'// Informe Cognitivo',score:'Puntuación Total',issues:'Problemas',plan:'Plan',inp:'Entrada',rep:'Informe',coach:'Coach',ct:'COGNITIV AI',cw:'Tu coach de rendimiento personal. Pregúntame sobre sueño, enfoque y hábitos neurocientíficos.',ph:'Pregunta al coach...',sugg:['¿Dormir mejor?','Menos estrés','Más enfoque','Rutina matutina']},
+  fr:{daily:'// Saisie Quotidienne',sleep:'Sommeil',sleep_s:'Heures cette nuit',focus:'Concentration',focus_s:'Auto-évaluation',med:'Méditation',med_s:"Minutes aujourd'hui",dw:'Travail Profond',dw_s:'Minutes concentrées',stress:'Stress',stress_s:'Niveau actuel',btn:'▶ Analyser Performance',report:'// Rapport Cognitif',score:'Score Composite',issues:'Problèmes',plan:'Plan',inp:'Saisie',rep:'Rapport',coach:'Coach',ct:'COGNITIV AI',cw:'Votre coach personnel. Posez des questions sur le sommeil, la concentration et les habitudes neuroscientifiques.',ph:'Posez une question...',sugg:['Mieux dormir?','Réduire stress','Améliorer focus','Routine matin']},
+  de:{daily:'// Tägliche Eingabe',sleep:'Schlaf',sleep_s:'Stunden letzte Nacht',focus:'Fokus',focus_s:'Selbstbewertung',med:'Meditation',med_s:'Minuten heute',dw:'Tiefarbeit',dw_s:'Fokussierte Minuten',stress:'Stress',stress_s:'Aktuelles Niveau',btn:'▶ Leistung Analysieren',report:'// Kognitiver Bericht',score:'Gesamtpunktzahl',issues:'Probleme',plan:'Plan',inp:'Eingabe',rep:'Bericht',coach:'Coach',ct:'COGNITIV AI',cw:'Ihr persönlicher Leistungscoach. Fragen zu Schlaf, Fokus und neurowissenschaftlichen Gewohnheiten.',ph:'Coach fragen...',sugg:['Besser schlafen?','Stress senken','Fokus steigern','Morgenroutine']},
+};
+LANGS.forEach(l=>{ if(!T[l.code]) T[l.code]=T.en; });
+
+let lang='en', chatHistory=[], lastData=null;
+
+function openLang(){
+  document.getElementById('langGrid').innerHTML=LANGS.map(l=>`<div class="lang-item ${l.code===lang?'active':''}" onclick="setLang('${l.code}')"><span class="lang-item-flag">${l.flag}</span><div><div class="lang-item-name">${l.name}</div><div class="lang-item-native">${l.native}</div></div></div>`).join('');
+  document.getElementById('langModal').classList.add('show');
+}
+function closeLang(){ document.getElementById('langModal').classList.remove('show'); }
+function setLang(c){
+  lang=c;
+  const l=LANGS.find(x=>x.code===c);
+  document.getElementById('curFlag').textContent=l.flag;
+  document.getElementById('curCode').textContent=l.code.toUpperCase();
+  applyT(); closeLang();
+}
+function applyT(){
+  const t=T[lang];
+  document.getElementById('lbl-daily').textContent=t.daily;
+  document.getElementById('lbl-sleep').textContent=t.sleep;
+  document.getElementById('lbl-sleep-sub').textContent=t.sleep_s;
+  document.getElementById('lbl-focus').textContent=t.focus;
+  document.getElementById('lbl-focus-sub').textContent=t.focus_s;
+  document.getElementById('lbl-med').textContent=t.med;
+  document.getElementById('lbl-med-sub').textContent=t.med_s;
+  document.getElementById('lbl-dw').textContent=t.dw;
+  document.getElementById('lbl-dw-sub').textContent=t.dw_s;
+  document.getElementById('lbl-stress').textContent=t.stress;
+  document.getElementById('lbl-stress-sub').textContent=t.stress_s;
+  document.getElementById('btn-analyze').textContent=t.btn;
+  document.getElementById('lbl-report').textContent=t.report;
+  document.getElementById('lbl-score').textContent=t.score;
+  document.getElementById('tab-btn-issues').textContent=t.issues;
+  document.getElementById('tab-btn-plan').textContent=t.plan;
+  document.getElementById('nav-lbl-input').textContent=t.inp;
+  document.getElementById('nav-lbl-report').textContent=t.rep;
+  document.getElementById('nav-lbl-coach').textContent=t.coach;
+  document.getElementById('lbl-chat-title').textContent=t.ct;
+  document.getElementById('lbl-chat-sub').textContent=t.cw;
+  document.getElementById('chatInput').placeholder=t.ph;
+  document.getElementById('chatSuggestions').innerHTML=t.sugg.map(s=>`<button class="suggestion-chip" onclick="sendSugg('${s}')">${s}</button>`).join('');
+}
+
+function showScreen(n){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+n).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('nav-'+n).classList.add('active');
+}
+function switchTab(id,btn){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function calcScore(d){
+  return Math.round(
+    Math.min(Math.max(((d.sleep-4)/4)*100,0),100)*.30+
+    (d.focus/10)*100*.25+
+    Math.min((d.med/30)*100,100)*.15+
+    Math.min((d.dw/120)*100,100)*.20+
+    Math.max(((10-d.stress)/10)*100,0)*.10
+  );
+}
+
+function runAnalysis(){
+  const d={
+    sleep:parseFloat(document.getElementById('sl-sleep').value),
+    focus:parseInt(document.getElementById('sl-focus').value),
+    med:parseInt(document.getElementById('sl-med').value),
+    dw:parseInt(document.getElementById('sl-dw').value),
+    stress:parseInt(document.getElementById('sl-stress').value)
+  };
+  lastData=d;
+  document.getElementById('loaderText').textContent=T[lang].btn.replace('▶ ','');
+  document.getElementById('loader').classList.add('show');
+  setTimeout(()=>{
+    const sc=calcScore(d);
+    document.getElementById('score-display').textContent=sc;
+    const grades=['CRITICAL','BELOW OPTIMAL','FUNCTIONAL','HIGH PERFORMANCE','PEAK STATE'];
+    document.getElementById('score-grade').textContent=sc>=90?grades[4]:sc>=80?grades[3]:sc>=70?grades[2]:sc>=60?grades[1]:grades[0];
+    setTimeout(()=>document.getElementById('score-bar').style.width=sc+'%',100);
+
+    const t=T[lang];
+    document.getElementById('metrics-grid').innerHTML=[
+      {l:t.sleep,v:d.sleep,u:'h',m:10},{l:t.focus,v:d.focus,u:'/10',m:10},
+      {l:t.med,v:d.med,u:'m',m:60},{l:t.dw,v:d.dw,u:'m',m:240}
+    ].map(x=>`<div class="metric-card"><div class="metric-label">${x.l}</div><div class="metric-val">${x.v}<span>${x.u}</span></div><div class="metric-bar"><div class="metric-bar-fill" style="width:${(x.v/x.m)*100}%"></div></div></div>`).join('');
+
+    const bns=[];
+    if(d.sleep<8) bns.push({l:'Sleep Deficit',i:'◑',d:`${d.sleep}h — optimal 8–9h. ~${Math.round((8-d.sleep)*14)}% memory loss.`,s:'moderate'});
+    if(d.focus<8) bns.push({l:'Focus Fragmentation',i:'◈',d:`${d.focus}/10 — sub-8 signals attentional drift.`,s:'high'});
+    if(d.med<25) bns.push({l:'Regulation Underload',i:'◎',d:`${d.med}min — below 25-min threshold for HRV improvement.`,s:'moderate'});
+    if(d.dw<120) bns.push({l:'Deep Work Ceiling',i:'▣',d:`${d.dw}min — peak output needs 120–180min unbroken.`,s:'high'});
+    if(d.stress>3) bns.push({l:'Cortisol Elevation',i:'⊗',d:`Stress ${d.stress}/10 — above 3 disrupts working memory.`,s:'moderate'});
+    document.getElementById('tab-bottlenecks').innerHTML=bns.length?bns.map(b=>`<div class="bn-card ${b.s}"><div class="bn-header"><span class="bn-icon">${b.i}</span><span class="bn-name">${b.l}</span><span class="bn-badge ${b.s}">${b.s.toUpperCase()}</span></div><div class="bn-detail">${b.d}</div></div>`).join(''):'<div style="padding:24px;text-align:center;color:var(--accent);letter-spacing:2px;font-size:12px">NO ISSUES ✓</div>';
+
+    document.getElementById('tab-plan').innerHTML=[
+      {p:'Week 1–2',t:'Foundation Reset',a:[`Extend sleep ${Math.max(0,(8-d.sleep)*60).toFixed(0)}min — 10:30pm bedtime`,'5min ritual: cold water + box breathing','Increase meditation to 25min']},
+      {p:'Week 3–4',t:'Deep Work Architecture',a:['Block 2×90min before noon — no notifications','Write one objective before each session','Target focus 8.5+ in 10 days']},
+      {p:'Month 2',t:'Stress Protocol',a:['10min afternoon walk — reduces cortisol 15–20%','Weekly review: load vs efficiency','Target score 88+ for 3 consecutive weeks']}
+    ].map(p=>`<div class="plan-card"><div class="plan-header"><span class="plan-phase">${p.p}</span><span class="plan-title">${p.t}</span></div>${p.a.map(a=>`<div class="plan-action"><span class="plan-bullet">▸</span><span>${a}</span></div>`).join('')}</div>`).join('')+`<div class="target-box"><div class="target-label">Target Outcome</div><div class="target-text">Projected score: <strong>88–92</strong> within 60 days.</div></div>`;
+
+    document.getElementById('loader').classList.remove('show');
+    showScreen('result');
+  },1200);
+}
+
+function handleKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
+function sendSugg(t){ document.getElementById('chatInput').value=t; sendMsg(); }
+
+function addMsg(text,role){
+  const msgs=document.getElementById('chatMessages');
+  const w=msgs.querySelector('.chat-welcome');
+  if(w) w.remove();
+  const t=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const d=document.createElement('div');
+  d.className=`msg ${role}`;
+  d.innerHTML=`<div class="msg-bubble">${text.replace(/\n/g,'<br>')}</div><div class="msg-time">${t}</div>`;
+  msgs.appendChild(d);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function showTyping(){
+  const msgs=document.getElementById('chatMessages');
+  const d=document.createElement('div');
+  d.className='msg ai'; d.id='typing';
+  d.innerHTML='<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+  msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight;
+}
+function removeTyping(){ const t=document.getElementById('typing'); if(t) t.remove(); }
+
+async function sendMsg(){
+  const inp=document.getElementById('chatInput');
+  const text=inp.value.trim();
+  if(!text) return;
+  inp.value='';
+  addMsg(text,'user');
+  chatHistory.push({role:'user',content:text});
+  showTyping();
+
+  const langName=LANGS.find(l=>l.code===lang)?.name||'English';
+  const ctx=lastData?`User data: Sleep ${lastData.sleep}h, Focus ${lastData.focus}/10, Meditation ${lastData.med}min, Deep Work ${lastData.dw}min, Stress ${lastData.stress}/10, Score: ${calcScore(lastData)}.`:'No data yet.';
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:`You are COGNITIV AI, a world-class personal performance coach expert in neuroscience, sleep science, cognitive performance, stress management and evidence-based productivity.\n\nCRITICAL: Always respond in ${langName}. Every response must be in ${langName}.\n\n${ctx}\n\nStyle: cite real research when relevant, be direct and actionable with specific protocols and numbers, be encouraging but honest, keep responses concise (3-5 sentences for simple questions). Never diagnose medical conditions.`,
+        messages:chatHistory
+      })
+    });
+    const data=await res.json();
+    removeTyping();
+    if(data.content&&data.content[0]){
+      const reply=data.content[0].text;
+      chatHistory.push({role:'assistant',content:reply});
+      addMsg(reply,'ai');
+    } else {
+      addMsg('Connection error. Please try again.','ai');
+    }
+  }catch(e){
+    removeTyping();
+    addMsg('Network error. Check connection.','ai');
+  }
+}
+
+applyT();
+</script>
+</body>
+</html>
