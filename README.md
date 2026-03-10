@@ -1,1 +1,0 @@
-# cognitiv-app
